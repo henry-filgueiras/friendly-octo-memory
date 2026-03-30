@@ -6,6 +6,7 @@ import { HeroPanel } from "./components/HeroPanel";
 import { InspectorPane } from "./components/InspectorPane";
 import { getDemoScenarios } from "./data/demos";
 import { buildClaimExplanation } from "./domain/explanations";
+import { isClaimSetArtifactEnvelope, seedScenarioFromClaimSetArtifact } from "./domain/imports";
 import { syncScenario } from "./domain/helpers";
 import { buildMarkdownSummary } from "./domain/markdown";
 import type { EvidenceScenario } from "./domain/types";
@@ -118,8 +119,18 @@ export default function App() {
     }
 
     try {
-      const parsed = await readJsonFile<EvidenceScenario | { scenario: EvidenceScenario }>(file);
-      replaceScenario(syncScenario(unwrapScenarioEnvelope(parsed)));
+      const parsed = await readJsonFile<unknown>(file);
+
+      if (isClaimSetArtifactEnvelope(parsed)) {
+        replaceScenario(seedScenarioFromClaimSetArtifact(parsed));
+      } else {
+        replaceScenario(
+          syncScenario(
+            unwrapScenarioEnvelope(parsed as EvidenceScenario | { scenario: EvidenceScenario })
+          )
+        );
+      }
+
       setGuidedDemoStepIndex(null);
     } catch {
       window.alert("Could not import that JSON file.");

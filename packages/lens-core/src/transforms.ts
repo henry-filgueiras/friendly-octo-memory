@@ -1,5 +1,6 @@
 import type {
   ClaimSetArtifact,
+  ExecutionPlanArtifact,
   LensArtifactEnvelope,
   LensArtifactKind,
   LensArtifactPayloadByKind,
@@ -104,6 +105,65 @@ function cloneClaim(claim: ClaimSetArtifact["claims"][number]) {
     notes: claim.notes,
   };
 }
+
+function projectExecutionTaskToClaim(
+  task: ExecutionPlanArtifact["tasks"][number],
+  subject: string
+): ClaimSetArtifact["claims"][number] | null {
+  if (task.status === "done") {
+    return null;
+  }
+
+  const notes = [task.notes, ...task.constraintIssues].filter(Boolean).join("\n\n");
+
+  if (task.constraintIssues.length > 0 && task.critical) {
+    return {
+      id: `claim-${task.id}`,
+      statement: `${task.name} is a schedule-critical task with explicit deadline pressure in the current plan for ${subject}.`,
+      category: "Critical deadline pressure",
+      notes,
+    };
+  }
+
+  if (task.constraintIssues.length > 0) {
+    return {
+      id: `claim-${task.id}`,
+      statement: `${task.name} is carrying explicit deadline pressure in the current plan for ${subject}.`,
+      category: "Deadline pressure",
+      notes,
+    };
+  }
+
+  if (task.critical) {
+    return {
+      id: `claim-${task.id}`,
+      statement: `${task.name} is schedule-critical for delivering ${subject}.`,
+      category: "Critical path",
+      notes,
+    };
+  }
+
+  return null;
+}
+
+export const executionPlanToClaimSetTransform: LensTransform<"ExecutionPlan", "ClaimSet"> = {
+  id: "execution-plan-to-claim-set",
+  name: "Execution plan to claim set",
+  inputKind: "ExecutionPlan",
+  outputKind: "ClaimSet",
+  description:
+    "Projects only non-done tasks that are schedule-critical or under explicit deadline pressure into claims. It is a narrow planning-pressure transform, not a universal task-to-claim mapping.",
+  run(input, context) {
+    const claims = input.payload.tasks
+      .map((task) => projectExecutionTaskToClaim(task, input.payload.subject))
+      .filter((claim): claim is ClaimSetArtifact["claims"][number] => Boolean(claim));
+
+    return createDerivedArtifact(input, context, executionPlanToClaimSetTransform, {
+      subject: input.payload.subject,
+      claims,
+    });
+  },
+};
 
 export const claimSetToEvidenceMapSeedTransform: LensTransform<"ClaimSet", "EvidenceMap"> = {
   id: "claim-set-to-evidence-map-seed",

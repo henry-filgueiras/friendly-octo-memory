@@ -5,6 +5,7 @@ import type { ThreadlineScenario } from "../domain/types";
 interface HeroPanelProps {
   demos: LensDemoScenario<ThreadlineScenario>[];
   importInputRef: RefObject<HTMLInputElement>;
+  onExportExecutionPlanArtifact: () => void;
   onExportJson: () => void;
   onExportMarkdown: () => void;
   onImport: (event: ChangeEvent<HTMLInputElement>) => void | Promise<void>;
@@ -15,6 +16,7 @@ interface HeroPanelProps {
 export function HeroPanel({
   demos,
   importInputRef,
+  onExportExecutionPlanArtifact,
   onExportJson,
   onExportMarkdown,
   onImport,
@@ -62,6 +64,9 @@ export function HeroPanel({
             </button>
             <button type="button" className="ghost-button" onClick={onExportJson}>
               Export JSON
+            </button>
+            <button type="button" className="ghost-button" onClick={onExportExecutionPlanArtifact}>
+              Export ExecutionPlan artifact
             </button>
             <button type="button" className="ghost-button" onClick={onExportMarkdown}>
               Export Markdown
