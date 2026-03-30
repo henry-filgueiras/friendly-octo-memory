@@ -3,6 +3,7 @@ import type {
   AnalysisResult,
   ClaimAssessment,
   ClaimVerdict,
+  EvidenceGroupAssessment,
   EvidenceLinkAssessment,
   EvidenceScenario,
   MatrixCell,
@@ -45,6 +46,18 @@ function classifyClaim({
     return "contested";
   }
 
+  if (evidenceScore === 0 && mentionScore < 20) {
+    return "open";
+  }
+
+  if (evidenceScore < 14 && mentionScore < 12) {
+    return "open";
+  }
+
+  if (uniqueSourceCount <= 1) {
+    return "thin";
+  }
+
   if (supportScore >= 30 && contradictionScore <= 10) {
     return "supported";
   }
@@ -53,11 +66,7 @@ function classifyClaim({
     return "contradicted";
   }
 
-  if (evidenceScore < 14 && mentionScore < 12) {
-    return "open";
-  }
-
-  if (evidenceScore < 24 || uniqueSourceCount <= 1) {
+  if (evidenceScore < 24) {
     return "thin";
   }
 
@@ -89,6 +98,47 @@ function compareSources(left: SourceAssessment, right: SourceAssessment): number
   );
 }
 
+function buildEvidenceGroups(
+  relevantLinks: EvidenceLinkAssessment[]
+): EvidenceGroupAssessment[] {
+  const groupMap = new Map<string, EvidenceLinkAssessment[]>();
+
+  relevantLinks.forEach((entry) => {
+    const key = `${entry.source.id}:${entry.link.stance}`;
+
+    if (!groupMap.has(key)) {
+      groupMap.set(key, []);
+    }
+
+    groupMap.get(key)?.push(entry);
+  });
+
+  return Array.from(groupMap.values())
+    .map((links) => {
+      const orderedLinks = [...links].sort(
+        (left, right) =>
+          right.points - left.points ||
+          left.link.id.localeCompare(right.link.id)
+      );
+      const strongestLink = orderedLinks[0];
+
+      return {
+        claim: strongestLink.claim,
+        source: strongestLink.source,
+        stance: strongestLink.link.stance,
+        // Cap same-source same-stance evidence at the strongest excerpt.
+        points: strongestLink.points,
+        rawPoints: orderedLinks.reduce((sum, entry) => sum + entry.points, 0),
+        strongestLink,
+        links: orderedLinks,
+      } satisfies EvidenceGroupAssessment;
+    })
+    .sort(
+      (left, right) =>
+        right.points - left.points || left.source.title.localeCompare(right.source.title)
+    );
+}
+
 export function analyzeScenario(scenario: EvidenceScenario): AnalysisResult {
   const claims = [...scenario.claims].sort((left, right) =>
     left.statement.localeCompare(right.statement)
@@ -118,17 +168,33 @@ export function analyzeScenario(scenario: EvidenceScenario): AnalysisResult {
     const supportLinks = relevantLinks.filter((entry) => entry.link.stance === "supports");
     const contradictionLinks = relevantLinks.filter((entry) => entry.link.stance === "contradicts");
     const mentionLinks = relevantLinks.filter((entry) => entry.link.stance === "mentions");
-    const supportScore = supportLinks.reduce((sum, entry) => sum + entry.points, 0);
-    const contradictionScore = contradictionLinks.reduce((sum, entry) => sum + entry.points, 0);
-    const mentionScore = mentionLinks.reduce((sum, entry) => sum + entry.points, 0);
+    const supportGroups = buildEvidenceGroups(supportLinks);
+    const contradictionGroups = buildEvidenceGroups(contradictionLinks);
+    const mentionGroups = buildEvidenceGroups(mentionLinks);
+    const supportScore = supportGroups.reduce((sum, entry) => sum + entry.points, 0);
+    const contradictionScore = contradictionGroups.reduce((sum, entry) => sum + entry.points, 0);
+    const mentionScore = mentionGroups.reduce((sum, entry) => sum + entry.points, 0);
     const evidenceScore = supportScore + contradictionScore;
-    const coverageScore = clamp(evidenceScore + mentionScore * 0.35 + relevantLinks.length * 6, 0, 100);
-    const certaintyScore = clamp(evidenceScore * 1.1 + new Set(relevantLinks.map((entry) => entry.source.id)).size * 8, 0, 100);
+    const uniqueSourceCount = new Set(relevantLinks.map((entry) => entry.source.id)).size;
+    const uniqueSourceTypeCount = new Set(relevantLinks.map((entry) => entry.source.type)).size;
+    const coverageScore = clamp(
+      evidenceScore * 0.65 +
+        mentionScore * 0.2 +
+        uniqueSourceCount * 18 +
+        uniqueSourceTypeCount * 8,
+      0,
+      100
+    );
+    const certaintyScore = clamp(
+      evidenceScore * 0.6 + uniqueSourceCount * 22 + uniqueSourceTypeCount * 10,
+      0,
+      100
+    );
     const verdict = classifyClaim({
       supportScore,
       contradictionScore,
       mentionScore,
-      uniqueSourceCount: new Set(relevantLinks.map((entry) => entry.source.id)).size,
+      uniqueSourceCount,
     });
     const contestedScore = Math.min(supportScore, contradictionScore) * claim.importance;
     const gapScore = clamp((120 - coverageScore) * claim.importance + Math.abs(contradictionScore - supportScore) * 0.2, 0, 999);
@@ -145,10 +211,14 @@ export function analyzeScenario(scenario: EvidenceScenario): AnalysisResult {
       gapScore,
       contestedScore,
       verdict,
-      uniqueSourceCount: new Set(relevantLinks.map((entry) => entry.source.id)).size,
+      uniqueSourceCount,
+      uniqueSourceTypeCount,
       supportLinks,
       contradictionLinks,
       mentionLinks,
+      supportGroups,
+      contradictionGroups,
+      mentionGroups,
     } satisfies ClaimAssessment;
   });
 
@@ -172,21 +242,24 @@ export function analyzeScenario(scenario: EvidenceScenario): AnalysisResult {
         );
 
       const supportScore = relevantLinks
-        .filter((entry) => entry.link.stance === "supports")
-        .reduce((sum, entry) => sum + entry.points, 0);
+        .filter((entry) => entry.link.stance === "supports");
       const contradictionScore = relevantLinks
-        .filter((entry) => entry.link.stance === "contradicts")
-        .reduce((sum, entry) => sum + entry.points, 0);
+        .filter((entry) => entry.link.stance === "contradicts");
       const mentionScore = relevantLinks
-        .filter((entry) => entry.link.stance === "mentions")
-        .reduce((sum, entry) => sum + entry.points, 0);
+        .filter((entry) => entry.link.stance === "mentions");
+      const supportGroups = buildEvidenceGroups(supportScore);
+      const contradictionGroups = buildEvidenceGroups(contradictionScore);
+      const mentionGroups = buildEvidenceGroups(mentionScore);
 
       return {
         source,
-        supportScore,
-        contradictionScore,
-        mentionScore,
-        impactScore: supportScore + contradictionScore + mentionScore * 0.4,
+        supportScore: supportGroups.reduce((sum, entry) => sum + entry.points, 0),
+        contradictionScore: contradictionGroups.reduce((sum, entry) => sum + entry.points, 0),
+        mentionScore: mentionGroups.reduce((sum, entry) => sum + entry.points, 0),
+        impactScore:
+          supportGroups.reduce((sum, entry) => sum + entry.points, 0) +
+          contradictionGroups.reduce((sum, entry) => sum + entry.points, 0) +
+          mentionGroups.reduce((sum, entry) => sum + entry.points, 0) * 0.4,
         uniqueClaimCount: new Set(relevantLinks.map((entry) => entry.claim.id)).size,
         linkCount: relevantLinks.length,
         strongestLinks: relevantLinks.slice(0, 3),

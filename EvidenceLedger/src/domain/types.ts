@@ -61,6 +61,16 @@ export interface EvidenceLinkAssessment {
   points: number;
 }
 
+export interface EvidenceGroupAssessment {
+  claim: Claim;
+  source: Source;
+  stance: EvidenceStance;
+  points: number;
+  rawPoints: number;
+  strongestLink: EvidenceLinkAssessment;
+  links: EvidenceLinkAssessment[];
+}
+
 export interface ClaimAssessment {
   claim: Claim;
   supportScore: number;
@@ -74,9 +84,13 @@ export interface ClaimAssessment {
   contestedScore: number;
   verdict: ClaimVerdict;
   uniqueSourceCount: number;
+  uniqueSourceTypeCount: number;
   supportLinks: EvidenceLinkAssessment[];
   contradictionLinks: EvidenceLinkAssessment[];
   mentionLinks: EvidenceLinkAssessment[];
+  supportGroups: EvidenceGroupAssessment[];
+  contradictionGroups: EvidenceGroupAssessment[];
+  mentionGroups: EvidenceGroupAssessment[];
 }
 
 export interface SourceAssessment {

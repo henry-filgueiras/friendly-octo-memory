@@ -1,6 +1,22 @@
 import { formatImportance, formatPoints, formatVerdict } from "./helpers";
 import type { AnalysisResult, ClaimExplanation } from "./types";
 
+function describeGroup(
+  label: "support" | "contradiction",
+  sourceTitle: string,
+  points: number,
+  excerpt: string,
+  extraExcerptCount: number
+): string {
+  const excerptSuffix = excerpt ? `: ${excerpt}` : ".";
+  const extraSuffix =
+    extraExcerptCount > 0
+      ? ` (${extraExcerptCount} more excerpt${extraExcerptCount === 1 ? "" : "s"} from the same source not double-counted)`
+      : "";
+
+  return `${sourceTitle} adds ${formatPoints(points)} of ${label}${excerptSuffix}${extraSuffix}`;
+}
+
 export function buildClaimExplanation(
   analysis: AnalysisResult,
   claimId: string | null
@@ -15,18 +31,24 @@ export function buildClaimExplanation(
     return null;
   }
 
-  const helps = assessment.supportLinks.slice(0, 3).map((entry) => {
-    const excerpt = entry.link.excerpt.trim();
-    return `${entry.source.title} adds ${formatPoints(entry.points)} of support${
-      excerpt ? `: ${excerpt}` : "."
-    }`;
-  });
-  const hurts = assessment.contradictionLinks.slice(0, 3).map((entry) => {
-    const excerpt = entry.link.excerpt.trim();
-    return `${entry.source.title} adds ${formatPoints(entry.points)} of contradiction${
-      excerpt ? `: ${excerpt}` : "."
-    }`;
-  });
+  const helps = assessment.supportGroups.slice(0, 3).map((group) =>
+    describeGroup(
+      "support",
+      group.source.title,
+      group.points,
+      group.strongestLink.link.excerpt.trim(),
+      group.links.length - 1
+    )
+  );
+  const hurts = assessment.contradictionGroups.slice(0, 3).map((group) =>
+    describeGroup(
+      "contradiction",
+      group.source.title,
+      group.points,
+      group.strongestLink.link.excerpt.trim(),
+      group.links.length - 1
+    )
+  );
 
   const nextEvidence: string[] = [];
 
