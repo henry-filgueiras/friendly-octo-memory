@@ -250,15 +250,12 @@ textarea {
 }
 
 .file-button {
-  position: relative;
-  overflow: hidden;
+  box-shadow: 0 10px 22px rgba(163, 76, 33, 0.18);
 }
 
-.file-button input {
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  cursor: pointer;
+.dropzone-file-status {
+  font-size: 0.84rem;
+  color: var(--muted);
 }
 
 .textarea-wrap {

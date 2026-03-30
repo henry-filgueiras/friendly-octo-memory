@@ -72,10 +72,11 @@
             <p class="dropzone-detail">
               Choosing a file loads it into the editor below.
             </p>
-            <label class="button button-secondary file-button">
+            <button id="choose-file-button" class="button button-secondary file-button" type="button">
               Choose file
-              <input id="file-input" type="file" accept=".txt,.md,.json,.jsonl,.log,.js,text/plain,application/json,text/markdown,text/javascript,application/javascript" />
-            </label>
+            </button>
+            <p class="dropzone-file-status" id="file-status">No file selected yet.</p>
+            <input id="file-input" type="file" accept=".txt,.md,.json,.jsonl,.log,.js,text/plain,application/json,text/markdown,text/javascript,application/javascript" hidden />
           </div>
 
           <div class="editor-label-row">

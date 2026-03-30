@@ -96,6 +96,8 @@ local-only processing`;
   const sourceState = document.querySelector("#source-state");
   const emptyState = document.querySelector("#empty-state");
   const fileInput = document.querySelector("#file-input");
+  const chooseFileButton = document.querySelector("#choose-file-button");
+  const fileStatus = document.querySelector("#file-status");
   const dropzone = document.querySelector("#dropzone");
   const loadDemoButton = document.querySelector("#load-demo-button");
   const clearButton = document.querySelector("#clear-button");
@@ -212,11 +214,19 @@ local-only processing`;
       if (files[0]) await loadFile(files[0]);
     });
 
-    dropzone.addEventListener("click", function () { fileInput.click(); });
+    chooseFileButton.addEventListener("click", function () {
+      openFilePicker();
+    });
+
+    dropzone.addEventListener("click", function (event) {
+      if (event.target.closest("#choose-file-button")) return;
+      openFilePicker();
+    });
+
     dropzone.addEventListener("keydown", function (event) {
       if (event.key === "Enter" || event.key === " ") {
         event.preventDefault();
-        fileInput.click();
+        openFilePicker();
       }
     });
 
@@ -236,6 +246,7 @@ local-only processing`;
       clearState();
       syncFormToState();
       render();
+      setFileStatus("No file selected yet.");
       setInputStatus("Cleared the editor. Paste text, drop a file, or load the demo to start again.");
     });
 
@@ -284,6 +295,7 @@ local-only processing`;
     }
 
     const text = await file.text();
+    setFileStatus('Loaded "' + file.name + '" (' + formatBytes(file.size) + ').');
     setEditorText(text, {
       name: file.name,
       size: file.size,
@@ -292,6 +304,7 @@ local-only processing`;
   }
 
   function loadDemo() {
+    setFileStatus("Using bundled demo text.");
     setEditorText(demoText, {
       name: "Demo sample",
       size: estimateByteSize(demoText),
@@ -791,6 +804,14 @@ local-only processing`;
 
   function titleCase(value) {
     return value.charAt(0).toUpperCase() + value.slice(1);
+  }
+
+  function openFilePicker() {
+    fileInput.click();
+  }
+
+  function setFileStatus(message) {
+    fileStatus.textContent = message;
   }
 
   function setInputStatus(message) {
