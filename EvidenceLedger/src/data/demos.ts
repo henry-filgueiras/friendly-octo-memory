@@ -1,14 +1,8 @@
 import { syncScenario } from "../domain/helpers";
 import type { EvidenceScenario } from "../domain/types";
+import type { LensDemoScenario } from "lens-core";
 
-export interface DemoScenario {
-  id: string;
-  label: string;
-  description: string;
-  scenario: EvidenceScenario;
-}
-
-export function getDemoScenarios(): DemoScenario[] {
+export function getDemoScenarios(): LensDemoScenario<EvidenceScenario>[] {
   return [
     {
       id: "demo-incident",

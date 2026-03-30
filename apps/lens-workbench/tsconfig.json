@@ -11,11 +11,6 @@
     "forceConsistentCasingInFileNames": true,
     "module": "ESNext",
     "moduleResolution": "Node",
-    "baseUrl": ".",
-    "paths": {
-      "lens-core": ["../../packages/lens-core/src/index.ts"],
-      "lens-core/shell.css": ["../../packages/lens-core/src/shell.css"]
-    },
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
