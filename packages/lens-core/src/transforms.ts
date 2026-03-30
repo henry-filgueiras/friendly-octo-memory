@@ -181,3 +181,15 @@ export const claimSetToEvidenceMapSeedTransform: LensTransform<"ClaimSet", "Evid
     });
   },
 };
+
+export const lensTransforms: ReadonlyArray<LensTransform<LensArtifactKind, LensArtifactKind>> = [
+  decisionModelToRankedOptionsTransform as LensTransform<LensArtifactKind, LensArtifactKind>,
+  executionPlanToClaimSetTransform as LensTransform<LensArtifactKind, LensArtifactKind>,
+  claimSetToEvidenceMapSeedTransform as LensTransform<LensArtifactKind, LensArtifactKind>,
+];
+
+export function getCompatibleLensTransforms(
+  inputKind: LensArtifactKind
+): ReadonlyArray<LensTransform<LensArtifactKind, LensArtifactKind>> {
+  return lensTransforms.filter((transform) => transform.inputKind === inputKind);
+}

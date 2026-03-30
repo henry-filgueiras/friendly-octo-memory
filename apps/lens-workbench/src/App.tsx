@@ -1,188 +1,301 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { LensDemoScenario, LensRuntime } from "lens-core";
+import type {
+  LensArtifactEnvelope,
+  LensArtifactKind,
+  LensTransform,
+} from "lens-core";
 import {
   LensHero,
   LensPanel,
   LensShell,
   LensStatGrid,
   exportScenarioJson,
+  getCompatibleLensTransforms,
+  getLensArtifactDefinition,
+  isLensArtifactEnvelope,
   lensShellClasses,
-  loadLocalScenario,
   readJsonFile,
-  saveLocalScenario,
-  unwrapScenarioEnvelope,
 } from "lens-core";
 
-interface WorkbenchScenario {
-  id: string;
-  name: string;
-  description: string;
-  entities: Array<{ id: string; name: string; signal: string }>;
-}
+type WorkbenchArtifact = {
+  [K in LensArtifactKind]: LensArtifactEnvelope<K>;
+}[LensArtifactKind];
 
-interface WorkbenchAnalysis {
-  entityCount: number;
-  entities: WorkbenchScenario["entities"];
-}
-
-const DEMOS: LensDemoScenario<WorkbenchScenario>[] = [
-  {
-    id: "comparison-lab",
-    label: "Comparison lab",
-    description: "A fake decision scenario that shows the shared hero and workspace framing.",
-    scenario: {
-      id: "comparison-lab",
-      name: "Comparison lab",
-      description: "Hardcoded example proving the extracted shell without inventing a generic engine.",
-      entities: [
-        { id: "one", name: "Scenario editor", signal: "Left pane owns raw model edits." },
-        { id: "two", name: "Analysis surface", signal: "Middle pane is where the derived view lives." },
-        { id: "three", name: "Inspector", signal: "Right pane translates state into human meaning." }
-      ],
+const SAMPLE_EXECUTION_PLAN_ARTIFACT: LensArtifactEnvelope<"ExecutionPlan"> = {
+  id: "artifact-threadline-launch-plan",
+  kind: "ExecutionPlan",
+  schemaVersion: 1,
+  title: "Launch a private beta execution plan",
+  createdAt: "2026-03-30T00:00:00.000Z",
+  payload: {
+    subject: "Launch a private beta",
+    deadlineDay: 22,
+    projectFinishDay: 20,
+    deadlineMissDays: 0,
+    tasks: [
+      {
+        id: "billing",
+        name: "Build billing guardrails",
+        status: "todo",
+        notes: "Prevent accidental paid-plan flows during beta.",
+        critical: true,
+        constraintIssues: [],
+      },
+      {
+        id: "qa",
+        name: "Run beta dry run",
+        status: "todo",
+        notes: "Walk the signup, invite, and support handoff path end-to-end.",
+        critical: true,
+        constraintIssues: [
+          "Run beta dry run needs to finish by day 18 but currently lands on day 19.",
+        ],
+      },
+      {
+        id: "copy",
+        name: "Write launch copy",
+        status: "todo",
+        notes: "Landing page headline, invite email, beta FAQ.",
+        critical: false,
+        constraintIssues: [],
+      },
+      {
+        id: "scope",
+        name: "Lock beta scope",
+        status: "done",
+        notes: "Decide what is in and out before downstream teams sprint.",
+        critical: true,
+        constraintIssues: [],
+      },
+    ],
+  },
+  provenance: {
+    producedBy: {
+      app: "Threadline",
     },
-  },
-  {
-    id: "planning-lab",
-    label: "Planning lab",
-    description: "A second hardcoded example showing the same chassis with different copy.",
-    scenario: {
-      id: "planning-lab",
-      name: "Planning lab",
-      description: "Same shell, different semantics. That is the point of this extraction pass.",
-      entities: [
-        { id: "one", name: "Shell primitives", signal: "Layout coincidence is real enough to share." },
-        { id: "two", name: "Engine semantics", signal: "The actual scoring and scheduling logic is not shared yet." },
-        { id: "three", name: "Migration path", signal: "Move utilities first, not the semantic heart." }
-      ],
+    sourceArtifacts: [],
+    sourceScenario: {
+      app: "Threadline",
+      scenarioId: "demo-launch",
+      scenarioName: "Launch a private beta",
     },
-  },
-];
-
-const STORAGE_KEY = "lens-workbench.scenario.v1";
-
-const workbenchRuntime: LensRuntime<WorkbenchScenario, WorkbenchAnalysis, string> = {
-  createEmptyScenario() {
-    return DEMOS[0].scenario;
-  },
-  normalizeScenario(scenario) {
-    return {
-      ...scenario,
-      entities: [...scenario.entities],
-    };
-  },
-  analyzeScenario(scenario) {
-    return {
-      entityCount: scenario.entities.length,
-      entities: [...scenario.entities],
-    };
-  },
-  exportMarkdown({ scenario, analysis }) {
-    return [
-      `# ${scenario.name}`,
-      "",
-      scenario.description,
-      "",
-      `Entities: ${analysis.entityCount}`,
-    ].join("\n");
-  },
-  explainSelection({ analysis, selectedId }) {
-    const entity = analysis.entities.find((entry) => entry.id === selectedId);
-
-    if (!entity) {
-      return null;
-    }
-
-    return `${entity.name}: ${entity.signal}`;
   },
 };
 
+const SAMPLE_CLAIM_SET_ARTIFACT: LensArtifactEnvelope<"ClaimSet"> = {
+  id: "artifact-launch-pressure-claims",
+  kind: "ClaimSet",
+  schemaVersion: 1,
+  title: "Launch pressure claims",
+  createdAt: "2026-03-30T00:10:00.000Z",
+  payload: {
+    subject: "Launch a private beta",
+    claims: [
+      {
+        id: "claim-billing",
+        statement: "Build billing guardrails is schedule-critical for delivering Launch a private beta.",
+        category: "Critical path",
+        notes: "Prevent accidental paid-plan flows during beta.",
+      },
+      {
+        id: "claim-qa",
+        statement:
+          "Run beta dry run is a schedule-critical task with explicit deadline pressure in the current plan for Launch a private beta.",
+        category: "Critical deadline pressure",
+        notes: "Walk the signup, invite, and support handoff path end-to-end.",
+      },
+    ],
+  },
+  provenance: {
+    producedBy: {
+      app: "lens-workbench",
+      transformId: "execution-plan-to-claim-set",
+    },
+    sourceArtifacts: [
+      {
+        id: SAMPLE_EXECUTION_PLAN_ARTIFACT.id,
+        kind: SAMPLE_EXECUTION_PLAN_ARTIFACT.kind,
+        title: SAMPLE_EXECUTION_PLAN_ARTIFACT.title,
+      },
+    ],
+    sourceScenario: {
+      app: "Threadline",
+      scenarioId: "demo-launch",
+      scenarioName: "Launch a private beta",
+    },
+  },
+};
+
+function summarizeArtifactPayload(artifact: WorkbenchArtifact): string[] {
+  switch (artifact.kind) {
+    case "ExecutionPlan": {
+      const criticalCount = artifact.payload.tasks.filter((task) => task.critical).length;
+      const constrainedCount = artifact.payload.tasks.filter(
+        (task) => task.constraintIssues.length > 0
+      ).length;
+
+      return [
+        `${artifact.payload.tasks.length} tasks`,
+        `${criticalCount} critical`,
+        `${constrainedCount} with deadline pressure`,
+        `finish day ${artifact.payload.projectFinishDay}`,
+      ];
+    }
+    case "ClaimSet":
+      return [
+        `${artifact.payload.claims.length} claims`,
+        ...artifact.payload.claims.slice(0, 2).map((claim) => claim.category ?? "Uncategorized"),
+      ];
+    case "EvidenceMap":
+      return [
+        `${artifact.payload.claims.length} claims`,
+        `${artifact.payload.sources.length} sources`,
+        `${artifact.payload.links.length} links`,
+      ];
+    case "DecisionModel":
+      return [
+        `${artifact.payload.criteria.length} criteria`,
+        `${artifact.payload.options.length} options`,
+      ];
+    case "RankedOptions":
+      return [
+        `${artifact.payload.ranked.length} ranked`,
+        `${artifact.payload.excluded.length} excluded`,
+      ];
+    case "ProblemFrame":
+      return [
+        `${artifact.payload.constraints.length} constraints`,
+        `${artifact.payload.openQuestions.length} open questions`,
+      ];
+    case "RecommendationPacket":
+      return [
+        artifact.payload.summary,
+        `${artifact.payload.supportingArtifactIds.length} supporting artifacts`,
+      ];
+  }
+}
+
+function formatProducedBy(artifact: WorkbenchArtifact): string {
+  const { app, transformId } = artifact.provenance.producedBy;
+  return transformId ? `${app} via ${transformId}` : app;
+}
+
+function buildDerivedArtifactTitle(
+  artifact: WorkbenchArtifact,
+  transform: LensTransform<LensArtifactKind, LensArtifactKind>
+): string {
+  const output = getLensArtifactDefinition(transform.outputKind)?.label ?? transform.outputKind;
+  return `${artifact.title} -> ${output}`;
+}
+
+function createArtifactId(kind: LensArtifactKind): string {
+  return `artifact-${kind.toLowerCase()}-${Date.now()}`;
+}
+
 export default function App() {
   const importRef = useRef<HTMLInputElement | null>(null);
-  const [scenario, setScenario] = useState<WorkbenchScenario>(() =>
-    loadLocalScenario({
-      createEmpty: workbenchRuntime.createEmptyScenario,
-      storageKey: STORAGE_KEY,
-      sync: workbenchRuntime.normalizeScenario,
-    })
+  const [currentArtifact, setCurrentArtifact] = useState<WorkbenchArtifact>(
+    SAMPLE_EXECUTION_PLAN_ARTIFACT
   );
-  const analysis = useMemo(() => workbenchRuntime.analyzeScenario(scenario), [scenario]);
-  const selectedDemo = useMemo(
-    () => DEMOS.find((demo) => demo.scenario.id === scenario.id) ?? DEMOS[0],
-    [scenario.id]
+  const [derivedArtifact, setDerivedArtifact] = useState<WorkbenchArtifact | null>(null);
+  const compatibleTransforms = useMemo(
+    () => getCompatibleLensTransforms(currentArtifact.kind),
+    [currentArtifact.kind]
   );
-  const inspectorExplanation = useMemo(
-    () =>
-      workbenchRuntime.explainSelection({
-        scenario,
-        analysis,
-        selectedId: analysis.entities[0]?.id ?? null,
-      }),
-    [analysis, scenario]
+  const [selectedTransformId, setSelectedTransformId] = useState<string | null>(
+    compatibleTransforms[0]?.id ?? null
+  );
+  const selectedTransform = compatibleTransforms.find(
+    (transform) => transform.id === selectedTransformId
   );
 
   useEffect(() => {
-    saveLocalScenario(STORAGE_KEY, scenario);
-  }, [scenario]);
+    setSelectedTransformId(compatibleTransforms[0]?.id ?? null);
+    setDerivedArtifact(null);
+  }, [currentArtifact, compatibleTransforms]);
 
   async function handleImport(file: File | null) {
     if (!file) {
       return;
     }
 
-    const parsed = await readJsonFile<WorkbenchScenario | { scenario: WorkbenchScenario }>(file);
-    setScenario(workbenchRuntime.normalizeScenario(unwrapScenarioEnvelope(parsed)));
+    const parsed = await readJsonFile<unknown>(file);
+
+    if (!isLensArtifactEnvelope(parsed)) {
+      window.alert("That file is not a lens artifact envelope.");
+      return;
+    }
+
+    setCurrentArtifact(parsed as WorkbenchArtifact);
+  }
+
+  function handleApplyTransform() {
+    if (!selectedTransform) {
+      return;
+    }
+
+    const now = new Date().toISOString();
+    const nextArtifact = selectedTransform.run(currentArtifact as never, {
+      artifactId: createArtifactId(selectedTransform.outputKind),
+      createdAt: now,
+      producedByApp: "lens-workbench",
+      title: buildDerivedArtifactTitle(currentArtifact, selectedTransform),
+    } as never);
+
+    setDerivedArtifact(nextArtifact as WorkbenchArtifact);
   }
 
   return (
     <LensShell>
       <LensHero>
         <div className={lensShellClasses.heroBody}>
-          <p className={lensShellClasses.eyebrow}>Shared chassis sandbox</p>
-          <h1>Lens Workbench</h1>
+          <p className={lensShellClasses.eyebrow}>Artifact operator bench</p>
+          <h1>Artifact Lab</h1>
           <p className="workbench-lede">
-            This tiny app exists to prove the extracted shell and contracts without pretending we
-            have a reusable meta-framework already.
+            Load a typed artifact, inspect its provenance, apply one explicit transform, and
+            export the derived artifact. No runner, no hidden workflow state, no universal schema.
           </p>
           <div className={lensShellClasses.pillRow}>
-            <span className={lensShellClasses.pill}>Shared shell</span>
-            <span className={lensShellClasses.pill}>Shared demo contract</span>
-            <span className={lensShellClasses.pill}>No generic engine</span>
+            <span className={lensShellClasses.pill}>Manual transform lab</span>
+            <span className={lensShellClasses.pill}>Typed envelopes</span>
+            <span className={lensShellClasses.pill}>Explicit provenance</span>
           </div>
         </div>
         <div className={lensShellClasses.heroActions}>
           <div className="workbench-card">
-            <p className={lensShellClasses.eyebrow}>Demos</p>
-            <div className="workbench-demo-list">
-              {DEMOS.map((demo) => (
-                <button
-                  key={demo.id}
-                  type="button"
-                  className={`workbench-button ${
-                    demo.id === selectedDemo.id ? "workbench-button--active" : ""
-                  }`}
-                  onClick={() => setScenario(workbenchRuntime.normalizeScenario(demo.scenario))}
-                >
-                  <strong>{demo.label}</strong>
-                  <span>{demo.description}</span>
-                </button>
-              ))}
-            </div>
+            <p className={lensShellClasses.eyebrow}>Load artifacts</p>
             <div className="workbench-actions">
               <button
                 type="button"
-                className="workbench-button"
-                onClick={() => exportScenarioJson("lens-workbench.json", scenario)}
+                className={`workbench-button ${
+                  currentArtifact.id === SAMPLE_EXECUTION_PLAN_ARTIFACT.id
+                    ? "workbench-button--active"
+                    : ""
+                }`}
+                onClick={() => setCurrentArtifact(SAMPLE_EXECUTION_PLAN_ARTIFACT)}
               >
-                <strong>Export JSON</strong>
-                <span>Exercises the shared download/export helper path.</span>
+                <strong>Sample ExecutionPlan</strong>
+                <span>Demo the real Threadline to ClaimSet handoff path.</span>
+              </button>
+              <button
+                type="button"
+                className={`workbench-button ${
+                  currentArtifact.id === SAMPLE_CLAIM_SET_ARTIFACT.id
+                    ? "workbench-button--active"
+                    : ""
+                }`}
+                onClick={() => setCurrentArtifact(SAMPLE_CLAIM_SET_ARTIFACT)}
+              >
+                <strong>Sample ClaimSet</strong>
+                <span>Continue the chain into an EvidenceMap seed artifact.</span>
               </button>
               <button
                 type="button"
                 className="workbench-button"
                 onClick={() => importRef.current?.click()}
               >
-                <strong>Import JSON</strong>
-                <span>Exercises the shared JSON read path too.</span>
+                <strong>Import artifact JSON</strong>
+                <span>Load a real exported artifact envelope from a lens app.</span>
               </button>
               <input
                 ref={importRef}
@@ -206,71 +319,201 @@ export default function App() {
         <LensPanel>
           <div className={lensShellClasses.panelHeader}>
             <div>
-              <p className={lensShellClasses.eyebrow}>Editor</p>
-              <h2>Shared chassis, local semantics</h2>
-            </div>
-            <p className="workbench-note">{selectedDemo.scenario.description}</p>
-          </div>
-          <div className="workbench-card">
-            <label className="workbench-field">
-              <span>Name</span>
-              <input value={scenario.name} readOnly />
-            </label>
-            <label className="workbench-field">
-              <span>Description</span>
-              <textarea rows={4} value={scenario.description} readOnly />
-            </label>
-          </div>
-        </LensPanel>
-
-        <LensPanel>
-          <div className={lensShellClasses.panelHeader}>
-            <div>
-              <p className={lensShellClasses.eyebrow}>Analysis</p>
-              <h2>What the shell can share safely</h2>
+              <p className={lensShellClasses.eyebrow}>Source Artifact</p>
+              <h2>{currentArtifact.title}</h2>
             </div>
             <LensStatGrid>
               <div className={lensShellClasses.statCard}>
-                <span>Demo</span>
-                <strong>{selectedDemo.label}</strong>
+                <span>Kind</span>
+                <strong>{currentArtifact.kind}</strong>
               </div>
               <div className={lensShellClasses.statCard}>
-                <span>Entities</span>
-                <strong>{analysis.entityCount}</strong>
+                <span>Schema</span>
+                <strong>v{currentArtifact.schemaVersion}</strong>
               </div>
             </LensStatGrid>
           </div>
+
           <div className="workbench-stack">
-            {analysis.entities.map((entity) => (
-              <article key={entity.id} className="workbench-entity">
-                <p className={lensShellClasses.eyebrow}>Pane role</p>
-                <h3>{entity.name}</h3>
-                <p>{entity.signal}</p>
-              </article>
-            ))}
+            <div className="workbench-card">
+              <p className={lensShellClasses.eyebrow}>Envelope</p>
+              <dl className="artifact-meta">
+                <div>
+                  <dt>Created</dt>
+                  <dd>{currentArtifact.createdAt}</dd>
+                </div>
+                <div>
+                  <dt>Produced by</dt>
+                  <dd>{formatProducedBy(currentArtifact)}</dd>
+                </div>
+                <div>
+                  <dt>Source scenario</dt>
+                  <dd>
+                    {currentArtifact.provenance.sourceScenario
+                      ? `${currentArtifact.provenance.sourceScenario.app} / ${
+                          currentArtifact.provenance.sourceScenario.scenarioName ??
+                          currentArtifact.provenance.sourceScenario.scenarioId ??
+                          "Unknown"
+                        }`
+                      : "None"}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Upstream artifacts</dt>
+                  <dd>
+                    {currentArtifact.provenance.sourceArtifacts.length > 0
+                      ? currentArtifact.provenance.sourceArtifacts
+                          .map((artifact) => `${artifact.kind}: ${artifact.title}`)
+                          .join(", ")
+                      : "None"}
+                  </dd>
+                </div>
+              </dl>
+            </div>
+
+            <div className="workbench-card">
+              <p className={lensShellClasses.eyebrow}>Payload summary</p>
+              <ul className="workbench-list">
+                {summarizeArtifactPayload(currentArtifact).map((line) => (
+                  <li key={line}>{line}</li>
+                ))}
+              </ul>
+            </div>
           </div>
         </LensPanel>
 
         <LensPanel>
           <div className={lensShellClasses.panelHeader}>
             <div>
-              <p className={lensShellClasses.eyebrow}>Inspector</p>
-              <h2>What still resists abstraction</h2>
+              <p className={lensShellClasses.eyebrow}>Transform Lab</p>
+              <h2>Compatible transforms</h2>
+            </div>
+            <p className="workbench-note">
+              Current real path: <code>ExecutionPlan -&gt; ClaimSet -&gt; EvidenceMap</code>
+            </p>
+          </div>
+
+          <div className="workbench-stack">
+            {compatibleTransforms.length === 0 ? (
+              <div className="workbench-card">
+                <p className="workbench-note">
+                  No transforms are registered for <code>{currentArtifact.kind}</code>.
+                </p>
+              </div>
+            ) : (
+              compatibleTransforms.map((transform) => (
+                <button
+                  key={transform.id}
+                  type="button"
+                  className={`workbench-button ${
+                    transform.id === selectedTransformId ? "workbench-button--active" : ""
+                  }`}
+                  onClick={() => setSelectedTransformId(transform.id)}
+                >
+                  <strong>
+                    {transform.inputKind} -&gt; {transform.outputKind}
+                  </strong>
+                  <span>{transform.description}</span>
+                </button>
+              ))
+            )}
+
+            <div className="workbench-actions">
+              <button
+                type="button"
+                className="workbench-button"
+                onClick={handleApplyTransform}
+                disabled={!selectedTransform}
+              >
+                <strong>Apply selected transform</strong>
+                <span>
+                  Generate a derived artifact with fresh id, timestamp, and `lens-workbench`
+                  provenance.
+                </span>
+              </button>
+              {derivedArtifact ? (
+                <button
+                  type="button"
+                  className="workbench-button"
+                  onClick={() => setCurrentArtifact(derivedArtifact)}
+                >
+                  <strong>Use derived artifact as current</strong>
+                  <span>Promote the derived artifact so you can apply the next compatible step.</span>
+                </button>
+              ) : null}
             </div>
           </div>
-          <div className="workbench-card">
-            {inspectorExplanation ? <p className="workbench-note">{inspectorExplanation}</p> : null}
-            <p className="workbench-note">
-              Real handoff path: <code>ExecutionPlan</code> from <code>Threadline</code> flows
-              through <code>execution-plan-to-claim-set</code> into a <code>ClaimSet</code>,
-              which can seed <code>EvidenceLedger</code>.
-            </p>
-            <ul className="workbench-list">
-              <li>`TradeoffLens` needs ranking, frontier, and sensitivity semantics.</li>
-              <li>`Threadline` needs dependency, capacity, and slip-propagation semantics.</li>
-              <li>`EvidenceLedger` needs source-independence and contradiction semantics.</li>
-              <li>The coincidence is in the frame, not the engine.</li>
-            </ul>
+        </LensPanel>
+
+        <LensPanel>
+          <div className={lensShellClasses.panelHeader}>
+            <div>
+              <p className={lensShellClasses.eyebrow}>Derived Artifact</p>
+              <h2>{derivedArtifact ? derivedArtifact.title : "Nothing derived yet"}</h2>
+            </div>
+          </div>
+
+          <div className="workbench-stack">
+            {derivedArtifact ? (
+              <>
+                <LensStatGrid>
+                  <div className={lensShellClasses.statCard}>
+                    <span>Kind</span>
+                    <strong>{derivedArtifact.kind}</strong>
+                  </div>
+                  <div className={lensShellClasses.statCard}>
+                    <span>Schema</span>
+                    <strong>v{derivedArtifact.schemaVersion}</strong>
+                  </div>
+                </LensStatGrid>
+
+                <div className="workbench-card">
+                  <p className={lensShellClasses.eyebrow}>Provenance</p>
+                  <dl className="artifact-meta">
+                    <div>
+                      <dt>Created</dt>
+                      <dd>{derivedArtifact.createdAt}</dd>
+                    </div>
+                    <div>
+                      <dt>Produced by</dt>
+                      <dd>{formatProducedBy(derivedArtifact)}</dd>
+                    </div>
+                    <div>
+                      <dt>Source artifacts</dt>
+                      <dd>
+                        {derivedArtifact.provenance.sourceArtifacts
+                          .map((artifact) => `${artifact.kind}: ${artifact.title}`)
+                          .join(", ")}
+                      </dd>
+                    </div>
+                  </dl>
+                </div>
+
+                <div className="workbench-card">
+                  <p className={lensShellClasses.eyebrow}>Payload summary</p>
+                  <ul className="workbench-list">
+                    {summarizeArtifactPayload(derivedArtifact).map((line) => (
+                      <li key={line}>{line}</li>
+                    ))}
+                  </ul>
+                </div>
+
+                <button
+                  type="button"
+                  className="workbench-button"
+                  onClick={() => exportScenarioJson(`${derivedArtifact.kind}.artifact.json`, derivedArtifact)}
+                >
+                  <strong>Export derived artifact JSON</strong>
+                  <span>Save the transformed artifact for import into the next lens.</span>
+                </button>
+              </>
+            ) : (
+              <div className="workbench-card">
+                <p className="workbench-note">
+                  Import or load an artifact, choose a compatible transform, and apply it here.
+                </p>
+              </div>
+            )}
           </div>
         </LensPanel>
       </main>
