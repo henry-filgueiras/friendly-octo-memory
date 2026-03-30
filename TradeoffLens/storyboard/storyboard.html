@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tradeoff Lens Storyboard</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #0c1115;
+        --panel: #121920;
+        --panel-soft: #182129;
+        --line: rgba(255, 255, 255, 0.12);
+        --text: #edf4f7;
+        --muted: #a5b5bc;
+        --accent: #e0a53c;
+        --teal: #5dc7c0;
+        --rose: #de7e68;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "IBM Plex Sans", "Avenir Next", sans-serif;
+        color: var(--text);
+        background:
+          radial-gradient(circle at top right, rgba(224, 165, 60, 0.18), transparent 28%),
+          radial-gradient(circle at top left, rgba(93, 199, 192, 0.12), transparent 24%),
+          linear-gradient(180deg, #11181d 0%, #0c1115 100%);
+      }
+
+      .page {
+        width: 1760px;
+        margin: 0 auto;
+        padding: 44px;
+      }
+
+      .hero {
+        display: grid;
+        grid-template-columns: 1.4fr 0.8fr;
+        gap: 24px;
+        margin-bottom: 28px;
+      }
+
+      .hero-card,
+      .note-card,
+      .panel {
+        border: 1px solid var(--line);
+        border-radius: 28px;
+        background: rgba(18, 25, 32, 0.9);
+        box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
+      }
+
+      .hero-card {
+        padding: 30px 32px;
+      }
+
+      .eyebrow {
+        margin: 0 0 10px;
+        color: var(--accent);
+        text-transform: uppercase;
+        letter-spacing: 0.15em;
+        font-size: 12px;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin-top: 0;
+      }
+
+      h1 {
+        font-family: "Space Grotesk", "IBM Plex Sans", sans-serif;
+        font-size: 54px;
+        line-height: 1;
+        letter-spacing: -0.04em;
+        margin-bottom: 16px;
+      }
+
+      .hero-copy {
+        font-size: 20px;
+        line-height: 1.55;
+        color: var(--muted);
+        max-width: 900px;
+      }
+
+      .pill-row,
+      .mini-list,
+      .callouts {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .pill,
+      .callout {
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      .pill {
+        padding: 8px 12px;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .note-card {
+        padding: 26px;
+      }
+
+      .note-card h2 {
+        font-size: 24px;
+        margin-bottom: 16px;
+      }
+
+      .mini-list {
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .mini-item {
+        display: grid;
+        grid-template-columns: 32px 1fr;
+        gap: 12px;
+        align-items: start;
+        color: var(--muted);
+        line-height: 1.5;
+      }
+
+      .mini-item strong {
+        color: var(--text);
+        display: block;
+        margin-bottom: 2px;
+      }
+
+      .num {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        font-weight: 700;
+        color: #0f1418;
+        background: linear-gradient(180deg, var(--accent), #f3c56c);
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 24px;
+      }
+
+      .panel {
+        overflow: hidden;
+      }
+
+      .panel.full {
+        grid-column: 1 / -1;
+      }
+
+      .panel-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 22px 24px 16px;
+      }
+
+      .panel-head h3 {
+        margin-bottom: 6px;
+        font-size: 28px;
+      }
+
+      .panel-head p {
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.5;
+      }
+
+      .frame {
+        position: relative;
+        margin: 0 18px 18px;
+        border-radius: 20px;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: #0d1318;
+      }
+
+      .frame img {
+        width: 100%;
+        display: block;
+      }
+
+      .crop-hero {
+        height: 420px;
+      }
+
+      .crop-hero img {
+        height: 100%;
+        object-fit: cover;
+        object-position: top center;
+      }
+
+      .crop-mid {
+        height: 360px;
+      }
+
+      .crop-mid img {
+        height: 100%;
+        object-fit: cover;
+        object-position: top center;
+      }
+
+      .crop-low {
+        height: 380px;
+      }
+
+      .crop-low img {
+        height: 100%;
+        object-fit: cover;
+        object-position: center 74%;
+      }
+
+      .callouts {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+      }
+
+      .callout {
+        position: absolute;
+        max-width: 260px;
+        padding: 10px 12px;
+        color: var(--text);
+        font-size: 14px;
+        line-height: 1.4;
+        backdrop-filter: blur(10px);
+      }
+
+      .callout strong {
+        display: block;
+        margin-bottom: 2px;
+        color: white;
+      }
+
+      .callout.accent {
+        background: rgba(224, 165, 60, 0.2);
+        border-color: rgba(224, 165, 60, 0.4);
+      }
+
+      .callout.teal {
+        background: rgba(93, 199, 192, 0.18);
+        border-color: rgba(93, 199, 192, 0.35);
+      }
+
+      .callout.rose {
+        background: rgba(222, 126, 104, 0.18);
+        border-color: rgba(222, 126, 104, 0.35);
+      }
+
+      .footer {
+        margin-top: 24px;
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        color: var(--muted);
+        font-size: 15px;
+      }
+
+      .footer strong {
+        color: var(--text);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <section class="hero">
+        <div class="hero-card">
+          <p class="eyebrow">Annotated storyboard</p>
+          <h1>Tradeoff Lens turns “which one feels right?” into a visible model.</h1>
+          <p class="hero-copy">
+            The point is not to replace judgment. It is to force the decision
+            into the open: what matters, how much it matters, what is a hard
+            stop, and why the current leader is actually leading.
+          </p>
+          <div class="pill-row">
+            <span class="pill">Local-only</span>
+            <span class="pill">Deterministic scoring</span>
+            <span class="pill">Hard constraints</span>
+            <span class="pill">Plain-English explanations</span>
+            <span class="pill">Sensitivity analysis</span>
+          </div>
+        </div>
+
+        <aside class="note-card">
+          <p class="eyebrow">How to read it</p>
+          <h2>Five quick moves</h2>
+          <div class="mini-list">
+            <div class="mini-item">
+              <div class="num">1</div>
+              <div><strong>Load a scenario</strong>Start with a realistic demo instead of a blank sheet.</div>
+            </div>
+            <div class="mini-item">
+              <div class="num">2</div>
+              <div><strong>Inspect the winner</strong>See which criteria are actually doing the work.</div>
+            </div>
+            <div class="mini-item">
+              <div class="num">3</div>
+              <div><strong>Challenge the result</strong>Pairwise and dominance views catch weak “top” picks.</div>
+            </div>
+            <div class="mini-item">
+              <div class="num">4</div>
+              <div><strong>Explore the frontier</strong>Some options are great tradeoffs even when they are not ranked first.</div>
+            </div>
+            <div class="mini-item">
+              <div class="num">5</div>
+              <div><strong>Stress-test weights</strong>If tiny slider changes flip the winner, the model needs a rethink.</div>
+            </div>
+          </div>
+        </aside>
+      </section>
+
+      <section class="grid">
+        <article class="panel full">
+          <div class="panel-head">
+            <div>
+              <p class="eyebrow">Step 1</p>
+              <h3>Load a demo and get an immediate model, not an empty spreadsheet.</h3>
+              <p>The left pane defines candidates and criteria. The center ranks them. The right explains the current result in normal language.</p>
+            </div>
+          </div>
+          <div class="frame crop-hero">
+            <img src="./raw/01-demo-overview.png" alt="Tradeoff Lens demo overview" />
+            <div class="callouts">
+              <div class="callout accent" style="left: 36px; top: 26px;">
+                <strong>Demo-first onboarding</strong>
+                The app is interesting immediately because real scenarios are one click away.
+              </div>
+              <div class="callout teal" style="right: 40px; top: 42px;">
+                <strong>No black box</strong>
+                The current leader, exclusions, and total active weight are visible at a glance.
+              </div>
+              <div class="callout rose" style="left: 48px; bottom: 34px;">
+                <strong>Editable model</strong>
+                Every candidate value, weight, and constraint can be changed in-place.
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-head">
+            <div>
+              <p class="eyebrow">Step 2</p>
+              <h3>Click a candidate and ask why it landed there.</h3>
+              <p>The explanation pane surfaces what helped, what hurt, and what would need to change for an upset.</p>
+            </div>
+          </div>
+          <div class="frame crop-mid">
+            <img src="./raw/02-candidate-explanation.png" alt="Candidate explanation view" />
+            <div class="callouts">
+              <div class="callout accent" style="left: 24px; top: 20px;">
+                <strong>Pick a challenger</strong>
+                Selecting Tesla reframes the right pane around a concrete “why not this one?” question.
+              </div>
+              <div class="callout teal" style="right: 22px; bottom: 24px;">
+                <strong>Readable reasoning</strong>
+                The explanation is derived from the scoring model, not pasted commentary.
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-head">
+            <div>
+              <p class="eyebrow">Step 3</p>
+              <h3>Use pairwise comparison to challenge a suspicious ranking.</h3>
+              <p>If an option only wins because of weights, the pairwise matrix makes the tradeoffs legible fast.</p>
+            </div>
+          </div>
+          <div class="frame crop-mid">
+            <img src="./raw/03-pairwise.png" alt="Pairwise comparison view" />
+            <div class="callouts">
+              <div class="callout rose" style="left: 28px; bottom: 22px;">
+                <strong>Delta, not vibes</strong>
+                Every matchup shows exactly how far apart two candidates are under the current weights.
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-head">
+            <div>
+              <p class="eyebrow">Step 4</p>
+              <h3>Switch to the Pareto frontier to see tradeoff shape, not just rank order.</h3>
+              <p>This is the “show me the efficient options” view for two numeric criteria.</p>
+            </div>
+          </div>
+          <div class="frame crop-mid">
+            <img src="./raw/04-pareto-frontier.png" alt="Pareto frontier view" />
+            <div class="callouts">
+              <div class="callout teal" style="right: 22px; top: 20px;">
+                <strong>Frontier points</strong>
+                Some candidates deserve attention because they are efficient tradeoffs even without being the top-ranked winner.
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-head">
+            <div>
+              <p class="eyebrow">Step 5</p>
+              <h3>Then drag the weights and see whether the ranking is robust or fragile.</h3>
+              <p>If a small slider nudge changes the leader, that is valuable information about the decision itself.</p>
+            </div>
+          </div>
+          <div class="frame crop-low">
+            <img src="./raw/05-sensitivity.png" alt="Sensitivity analysis view" />
+            <div class="callouts">
+              <div class="callout accent" style="left: 30px; bottom: 18px;">
+                <strong>Interactive stress test</strong>
+                Sensitivity makes the ranking feel alive and reveals where the model is stable versus brittle.
+              </div>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <footer class="footer">
+        <div><strong>Takeaway:</strong> Tradeoff Lens is compelling once people see that it explains itself at every step.</div>
+        <div>Built from real local screenshots of the app demo.</div>
+      </footer>
+    </div>
+  </body>
+</html>
