@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { LensArtifactKind, LensRecipe, LensTransform } from "lens-core";
 import {
   LensHero,
@@ -25,7 +25,6 @@ import {
   getArtifactLabCheckpointMap,
   getRecipeTransforms,
   type ArtifactLabRunEventInput,
-  type ArtifactLabRunJournal,
   isArtifactLabRunJournal,
   replayArtifactLabRunJournal,
 } from "./runJournal";
@@ -34,6 +33,15 @@ import {
   SAMPLE_EXECUTION_PLAN_ARTIFACT,
   type WorkbenchArtifact,
 } from "./sampleArtifacts";
+import {
+  ARTIFACT_LAB_WORKSPACE_STORAGE_KEY,
+  createArtifactLabWorkspace,
+  loadArtifactLabWorkspaceFromStorage,
+  parseArtifactLabWorkspace,
+  saveArtifactLabWorkspaceToStorage,
+  syncArtifactLabWorkspace,
+  type ArtifactLabWorkspace,
+} from "./workspace";
 
 function summarizeArtifactPayload(artifact: WorkbenchArtifact): string[] {
   switch (artifact.kind) {
@@ -182,8 +190,8 @@ function formatEventTime(timestamp: string) {
 }
 
 function upsertRunJournal(
-  journals: ArtifactLabRunJournal[],
-  nextJournal: ArtifactLabRunJournal
+  journals: ArtifactLabWorkspace["knownRunJournals"],
+  nextJournal: ArtifactLabWorkspace["knownRunJournals"][number]
 ) {
   const existingIndex = journals.findIndex((journal) => journal.sessionId === nextJournal.sessionId);
 
@@ -194,29 +202,35 @@ function upsertRunJournal(
   return journals.map((journal, index) => (index === existingIndex ? nextJournal : journal));
 }
 
-function describeSession(journal: ArtifactLabRunJournal) {
-  const replayed = replayArtifactLabRunJournal(journal);
+function describeSession(workspaceJournal: ArtifactLabWorkspace["knownRunJournals"][number]) {
+  const replayed = replayArtifactLabRunJournal(workspaceJournal);
   return replayed.currentArtifact
     ? `${replayed.currentArtifact.kind}: ${replayed.currentArtifact.title}`
-    : journal.sessionId;
+    : workspaceJournal.sessionId;
 }
 
 export default function App() {
-  const initialJournal = useMemo(
-    () => createArtifactLabRunJournal(SAMPLE_EXECUTION_PLAN_ARTIFACT),
-    []
-  );
   const artifactImportRef = useRef<HTMLInputElement | null>(null);
   const journalImportRef = useRef<HTMLInputElement | null>(null);
-  const [knownRunJournals, setKnownRunJournals] = useState<ArtifactLabRunJournal[]>([
-    initialJournal,
-  ]);
-  const [currentSessionId, setCurrentSessionId] = useState(initialJournal.sessionId);
-  const [targetArtifactKind, setTargetArtifactKind] = useState<LensArtifactKind | "">("");
-  const [comparisonSessionId, setComparisonSessionId] = useState<string>("");
+  const workspaceImportRef = useRef<HTMLInputElement | null>(null);
+  const [workspace, setWorkspace] = useState<ArtifactLabWorkspace>(() => {
+    const persisted = loadArtifactLabWorkspaceFromStorage();
 
+    if (persisted) {
+      return persisted;
+    }
+
+    return createArtifactLabWorkspace(createArtifactLabRunJournal(SAMPLE_EXECUTION_PLAN_ARTIFACT));
+  });
+
+  useEffect(() => {
+    saveArtifactLabWorkspaceToStorage(workspace, ARTIFACT_LAB_WORKSPACE_STORAGE_KEY);
+  }, [workspace]);
+
+  const { knownRunJournals, currentSessionId, comparisonSessionId, currentTargetArtifactKind = "" } =
+    workspace;
   const runJournal =
-    knownRunJournals.find((journal) => journal.sessionId === currentSessionId) ?? initialJournal;
+    knownRunJournals.find((journal) => journal.sessionId === currentSessionId) ?? knownRunJournals[0]!;
   const projected = useMemo(() => replayArtifactLabRunJournal(runJournal), [runJournal]);
   const currentArtifact = projected.currentArtifact;
   const derivedArtifact = projected.derivedArtifact;
@@ -258,6 +272,10 @@ export default function App() {
     ? replayArtifactLabRunJournal(comparisonJournal)
     : null;
 
+  function updateWorkspace(transform: (current: ArtifactLabWorkspace) => ArtifactLabWorkspace) {
+    setWorkspace((current) => syncArtifactLabWorkspace(transform(current), new Date().toISOString()));
+  }
+
   if (!currentArtifact) {
     return (
       <LensShell>
@@ -265,8 +283,8 @@ export default function App() {
           <p className={lensShellClasses.eyebrow}>Artifact operator bench</p>
           <h1>Artifact Lab</h1>
           <p className="workbench-note">
-            This run journal does not replay to a current artifact. Load a valid run journal or
-            start a new session from a sample artifact.
+            This workspace does not replay to a current artifact. Load a valid workspace or start
+            from a sample artifact.
           </p>
         </LensPanel>
       </LensShell>
@@ -277,6 +295,7 @@ export default function App() {
   const selectedTransform = compatibleTransforms.find(
     (transform) => transform.id === projected.selectedTransformId
   );
+  const targetArtifactKind = currentTargetArtifactKind || "";
   const targetPath = targetArtifactKind
     ? findTransformPath(currentArtifact.kind, targetArtifactKind)
     : null;
@@ -291,13 +310,14 @@ export default function App() {
   );
 
   function appendEvent(input: ArtifactLabRunEventInput, at = new Date().toISOString()) {
-    setKnownRunJournals((journals) =>
-      journals.map((journal) =>
+    updateWorkspace((current) => ({
+      ...current,
+      knownRunJournals: current.knownRunJournals.map((journal) =>
         journal.sessionId === runJournal.sessionId
           ? appendArtifactLabRunEvent(journal, input, at)
           : journal
-      )
-    );
+      ),
+    }));
   }
 
   function handleLoadArtifact(artifact: WorkbenchArtifact, source: "sample" | "manual" = "sample") {
@@ -346,17 +366,31 @@ export default function App() {
       return;
     }
 
-    setKnownRunJournals((journals) => upsertRunJournal(journals, parsed));
-    setCurrentSessionId(parsed.sessionId);
+    updateWorkspace((current) => ({
+      ...current,
+      knownRunJournals: upsertRunJournal(current.knownRunJournals, parsed),
+      currentSessionId: parsed.sessionId,
+      comparisonSessionId: parsed.forkedFrom?.sessionId ?? "",
+      currentTargetArtifactKind: replayed.activeRecipeId
+        ? getLensRecipe(replayed.activeRecipeId)?.targetKind ?? ""
+        : "",
+    }));
+  }
 
-    if (replayed.activeRecipeId) {
-      const recipe = getLensRecipe(replayed.activeRecipeId);
-      setTargetArtifactKind(recipe?.targetKind ?? "");
-    } else {
-      setTargetArtifactKind("");
+  async function handleWorkspaceImport(file: File | null) {
+    if (!file) {
+      return;
     }
 
-    setComparisonSessionId(parsed.forkedFrom?.sessionId ?? "");
+    const parsed = await readJsonFile<unknown>(file);
+    const importedWorkspace = parseArtifactLabWorkspace(parsed);
+
+    if (!importedWorkspace) {
+      window.alert("That file is not a valid Artifact Lab workspace bundle.");
+      return;
+    }
+
+    setWorkspace(importedWorkspace);
   }
 
   function handleActivateRecipe(recipe: LensRecipe) {
@@ -364,7 +398,10 @@ export default function App() {
       type: "recipe-activated",
       recipeId: recipe.id,
     });
-    setTargetArtifactKind(recipe.targetKind);
+    updateWorkspace((current) => ({
+      ...current,
+      currentTargetArtifactKind: recipe.targetKind,
+    }));
   }
 
   function handleClearRecipe() {
@@ -439,6 +476,10 @@ export default function App() {
     exportScenarioJson("artifact-lab.run-journal.json", runJournal);
   }
 
+  function handleExportWorkspace() {
+    exportScenarioJson("artifact-lab.workspace.json", workspace);
+  }
+
   function handleMarkCheckpoint(targetEventId: string) {
     const suggested = checkpointMap[targetEventId]?.length
       ? `Checkpoint ${checkpointMap[targetEventId]!.length + 1}`
@@ -460,16 +501,15 @@ export default function App() {
     const forkedJournal = createForkedArtifactLabRunJournal(runJournal, targetEventId);
     const replayed = replayArtifactLabRunJournal(forkedJournal);
 
-    setKnownRunJournals((journals) => upsertRunJournal(journals, forkedJournal));
-    setCurrentSessionId(forkedJournal.sessionId);
-    setComparisonSessionId(runJournal.sessionId);
-
-    if (replayed.activeRecipeId) {
-      const recipe = getLensRecipe(replayed.activeRecipeId);
-      setTargetArtifactKind(recipe?.targetKind ?? "");
-    } else {
-      setTargetArtifactKind("");
-    }
+    updateWorkspace((current) => ({
+      ...current,
+      knownRunJournals: upsertRunJournal(current.knownRunJournals, forkedJournal),
+      currentSessionId: forkedJournal.sessionId,
+      comparisonSessionId: runJournal.sessionId,
+      currentTargetArtifactKind: replayed.activeRecipeId
+        ? getLensRecipe(replayed.activeRecipeId)?.targetKind ?? ""
+        : "",
+    }));
   }
 
   function handleSwitchSession(sessionId: string) {
@@ -480,15 +520,15 @@ export default function App() {
     }
 
     const replayed = replayArtifactLabRunJournal(nextJournal);
-    setCurrentSessionId(sessionId);
-    setComparisonSessionId(nextJournal.forkedFrom?.sessionId ?? "");
 
-    if (replayed.activeRecipeId) {
-      const recipe = getLensRecipe(replayed.activeRecipeId);
-      setTargetArtifactKind(recipe?.targetKind ?? "");
-    } else {
-      setTargetArtifactKind("");
-    }
+    updateWorkspace((current) => ({
+      ...current,
+      currentSessionId: sessionId,
+      comparisonSessionId: nextJournal.forkedFrom?.sessionId ?? "",
+      currentTargetArtifactKind: replayed.activeRecipeId
+        ? getLensRecipe(replayed.activeRecipeId)?.targetKind ?? ""
+        : "",
+    }));
   }
 
   return (
@@ -498,14 +538,14 @@ export default function App() {
           <p className={lensShellClasses.eyebrow}>Artifact operator bench</p>
           <h1>Artifact Lab</h1>
           <p className="workbench-lede">
-            Load a typed artifact, inspect its provenance, apply one explicit transform, and
-            export the derived artifact. The run journal records what the human actually did, then
-            replays or forks the session deterministically.
+            Load a typed artifact, inspect provenance, apply explicit transforms, and branch
+            replayable sessions. The durable local workspace keeps runs, forks, comparison state,
+            and target selection together across reloads.
           </p>
           <div className={lensShellClasses.pillRow}>
-            <span className={lensShellClasses.pill}>Manual transform lab</span>
-            <span className={lensShellClasses.pill}>Append-only journal</span>
-            <span className={lensShellClasses.pill}>Replayable forks</span>
+            <span className={lensShellClasses.pill}>Durable local workspace</span>
+            <span className={lensShellClasses.pill}>Replayable runs</span>
+            <span className={lensShellClasses.pill}>Manual operator control</span>
           </div>
         </div>
         <div className={lensShellClasses.heroActions}>
@@ -550,7 +590,15 @@ export default function App() {
                 onClick={() => journalImportRef.current?.click()}
               >
                 <strong>Import run journal JSON</strong>
-                <span>Replay a saved Artifact Lab session into the current state.</span>
+                <span>Replay one saved Artifact Lab session into this workspace.</span>
+              </button>
+              <button
+                type="button"
+                className="workbench-button workbench-button--subtle"
+                onClick={() => workspaceImportRef.current?.click()}
+              >
+                <strong>Import workspace JSON</strong>
+                <span>Replace the current durable local workspace with a saved bundle.</span>
               </button>
               <input
                 ref={artifactImportRef}
@@ -578,12 +626,87 @@ export default function App() {
                   }
                 }}
               />
+              <input
+                ref={workspaceImportRef}
+                type="file"
+                accept="application/json,.json"
+                hidden
+                onChange={async (event) => {
+                  try {
+                    await handleWorkspaceImport(event.target.files?.[0] ?? null);
+                  } finally {
+                    event.currentTarget.value = "";
+                  }
+                }}
+              />
             </div>
           </div>
         </div>
       </LensHero>
 
       <main className={lensShellClasses.workspace}>
+        <LensPanel>
+          <div className={lensShellClasses.panelHeader}>
+            <div>
+              <p className={lensShellClasses.eyebrow}>Workspace</p>
+              <h2>Durable local bundle</h2>
+            </div>
+            <LensStatGrid>
+              <div className={lensShellClasses.statCard}>
+                <span>Workspace</span>
+                <strong>{workspace.workspaceId}</strong>
+              </div>
+              <div className={lensShellClasses.statCard}>
+                <span>Runs</span>
+                <strong>{workspace.knownRunJournals.length}</strong>
+              </div>
+            </LensStatGrid>
+          </div>
+
+          <div className="workbench-stack">
+            <div className="workbench-card">
+              <p className={lensShellClasses.eyebrow}>Workspace state</p>
+              <p className="workbench-note">
+                Sessions, forks, active comparison state, and the current target artifact kind now
+                persist together in local storage and can be exported as one workspace bundle.
+              </p>
+              <dl className="artifact-meta">
+                <div>
+                  <dt>Created</dt>
+                  <dd>{workspace.createdAt}</dd>
+                </div>
+                <div>
+                  <dt>Updated</dt>
+                  <dd>{workspace.updatedAt}</dd>
+                </div>
+                <div>
+                  <dt>Current target</dt>
+                  <dd>{workspace.currentTargetArtifactKind || "None"}</dd>
+                </div>
+              </dl>
+            </div>
+
+            <div className="workbench-actions transcript-actions">
+              <button
+                type="button"
+                className="workbench-button"
+                onClick={handleExportWorkspace}
+              >
+                <strong>Export workspace JSON</strong>
+                <span>Save the full local Artifact Lab workspace with all known runs.</span>
+              </button>
+              <button
+                type="button"
+                className="workbench-button workbench-button--subtle"
+                onClick={() => workspaceImportRef.current?.click()}
+              >
+                <strong>Import workspace JSON</strong>
+                <span>Load a full saved workspace bundle and restore the browser state.</span>
+              </button>
+            </div>
+          </div>
+        </LensPanel>
+
         <LensPanel>
           <div className={lensShellClasses.panelHeader}>
             <div>
@@ -596,8 +719,8 @@ export default function App() {
                 <strong>{runJournal.sessionId}</strong>
               </div>
               <div className={lensShellClasses.statCard}>
-                <span>Known runs</span>
-                <strong>{knownRunJournals.length}</strong>
+                <span>Origin</span>
+                <strong>{runJournal.forkedFrom ? "Fork" : "Root"}</strong>
               </div>
             </LensStatGrid>
           </div>
@@ -937,7 +1060,10 @@ export default function App() {
                 <select
                   value={targetArtifactKind}
                   onChange={(event) =>
-                    setTargetArtifactKind(event.target.value as LensArtifactKind | "")
+                    updateWorkspace((current) => ({
+                      ...current,
+                      currentTargetArtifactKind: event.target.value as LensArtifactKind | "",
+                    }))
                   }
                 >
                   <option value="">No target selected</option>
@@ -1180,7 +1306,7 @@ export default function App() {
                 onClick={handleExportRunJournal}
               >
                 <strong>Export run journal JSON</strong>
-                <span>Save the append-only session transcript for replay later.</span>
+                <span>Save just the current append-only session transcript.</span>
               </button>
               <button
                 type="button"
@@ -1188,7 +1314,7 @@ export default function App() {
                 onClick={() => journalImportRef.current?.click()}
               >
                 <strong>Load run journal JSON</strong>
-                <span>Replay a saved session into the current lab state.</span>
+                <span>Import one saved session into the current workspace.</span>
               </button>
             </div>
 
@@ -1247,7 +1373,12 @@ export default function App() {
                   <span>Compare current session against</span>
                   <select
                     value={effectiveComparisonSessionId}
-                    onChange={(event) => setComparisonSessionId(event.target.value)}
+                    onChange={(event) =>
+                      updateWorkspace((current) => ({
+                        ...current,
+                        comparisonSessionId: event.target.value,
+                      }))
+                    }
                   >
                     {comparisonCandidates.map((journal) => (
                       <option key={journal.sessionId} value={journal.sessionId}>
