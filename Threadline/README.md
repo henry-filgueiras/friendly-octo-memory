@@ -26,6 +26,7 @@ Most planning tools either flatten everything into a list or bury the schedule l
 - model lane capacity with configurable parallelism
 - compute a deterministic schedule that respects dependencies and lane queues
 - show a lane-aware timeline, dependency map, diagnostics view, and scenario diff
+- include a built-in guided demo walkthrough for the launch scenario
 - flag critical-path tasks, lane bottlenecks, local deadline misses, and slip impact
 - explain selected tasks in plain English
 - persist the current scenario in `localStorage`
