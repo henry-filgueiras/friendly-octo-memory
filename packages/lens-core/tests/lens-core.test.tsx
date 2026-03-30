@@ -44,7 +44,27 @@ describe("lens-core", () => {
     expect(loaded).toEqual({ id: "saved", synced: true });
   });
 
-  it("falls back to the empty scenario when local storage is missing or invalid", () => {
+  it("falls back to the empty scenario when local storage is empty", () => {
+    const windowStub = {
+      localStorage: {
+        getItem() {
+          return null;
+        },
+      },
+    };
+
+    Object.assign(globalThis, { window: windowStub });
+
+    const loaded = loadLocalScenario({
+      createEmpty: () => ({ id: "empty" }),
+      storageKey: "lens-core.empty",
+      sync: (scenario: { id: string }) => ({ ...scenario, synced: true }),
+    });
+
+    expect(loaded).toEqual({ id: "empty" });
+  });
+
+  it("falls back to the empty scenario when local storage is invalid", () => {
     const windowStub = {
       localStorage: {
         getItem() {
