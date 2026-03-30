@@ -8,6 +8,7 @@ interface HeroPanelProps {
   onExportMarkdown: () => void;
   onImport: (event: ChangeEvent<HTMLInputElement>) => void | Promise<void>;
   onLoadDemo: (demoId: string) => void;
+  onStartGuidedDemo: () => void;
 }
 
 export function HeroPanel({
@@ -17,6 +18,7 @@ export function HeroPanel({
   onExportMarkdown,
   onImport,
   onLoadDemo,
+  onStartGuidedDemo,
 }: HeroPanelProps) {
   return (
     <header className="hero-panel">
@@ -54,6 +56,9 @@ export function HeroPanel({
         <div className="hero-actions__block">
           <p className="eyebrow">Scenario controls</p>
           <div className="stacked-actions">
+            <button type="button" className="tab-button tab-button--active" onClick={onStartGuidedDemo}>
+              Walk me through it
+            </button>
             <button type="button" className="ghost-button" onClick={onExportJson}>
               Export JSON
             </button>
