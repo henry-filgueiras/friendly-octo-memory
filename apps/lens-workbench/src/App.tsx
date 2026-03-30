@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type {
   LensArtifactEnvelope,
   LensArtifactKind,
+  LensRecipe,
   LensTransform,
 } from "lens-core";
 import {
@@ -12,8 +13,11 @@ import {
   exportScenarioJson,
   getCompatibleLensTransforms,
   getLensArtifactDefinition,
+  getLensRecipe,
+  getLensTransformById,
   isLensArtifactEnvelope,
   lensArtifactRegistry,
+  lensRecipes,
   lensShellClasses,
   lensTransforms,
   readJsonFile,
@@ -249,6 +253,23 @@ function buildLineageLabel(
   return `${transform.inputKind} -> ${transform.outputKind} -> ${derivedArtifact.kind}`;
 }
 
+function formatRecipeChain(recipe: LensRecipe): string {
+  const parts: string[] = [recipe.startKind];
+
+  for (const transformId of recipe.transformIds) {
+    const transform = getLensTransformById(transformId);
+
+    if (!transform) {
+      parts.push(`Missing:${transformId}`);
+      continue;
+    }
+
+    parts.push(transform.outputKind);
+  }
+
+  return parts.join(" -> ");
+}
+
 export default function App() {
   const importRef = useRef<HTMLInputElement | null>(null);
   const [currentArtifact, setCurrentArtifact] = useState<WorkbenchArtifact>(
@@ -256,6 +277,8 @@ export default function App() {
   );
   const [derivedArtifact, setDerivedArtifact] = useState<WorkbenchArtifact | null>(null);
   const [targetArtifactKind, setTargetArtifactKind] = useState<LensArtifactKind | "">("");
+  const [activeRecipeId, setActiveRecipeId] = useState<string | null>(null);
+  const [completedRecipeSteps, setCompletedRecipeSteps] = useState(0);
   const compatibleTransforms = useMemo(
     () => getCompatibleLensTransforms(currentArtifact.kind),
     [currentArtifact.kind]
@@ -270,11 +293,36 @@ export default function App() {
     () => (targetArtifactKind ? findTransformPath(currentArtifact.kind, targetArtifactKind) : null),
     [currentArtifact.kind, targetArtifactKind]
   );
+  const activeRecipe = useMemo(
+    () => (activeRecipeId ? getLensRecipe(activeRecipeId) ?? null : null),
+    [activeRecipeId]
+  );
+  const activeRecipeTransforms = useMemo(
+    () =>
+      activeRecipe
+        ? activeRecipe.transformIds
+            .map((transformId) => getLensTransformById(transformId))
+            .filter((transform): transform is LensTransform<LensArtifactKind, LensArtifactKind> =>
+              Boolean(transform)
+            )
+        : [],
+    [activeRecipe]
+  );
+  const currentRecipeStep = activeRecipeTransforms[completedRecipeSteps];
+  const currentRecipeHint = activeRecipe?.stepHints?.[completedRecipeSteps];
+  const remainingRecipeTransforms = activeRecipeTransforms.slice(completedRecipeSteps);
 
   useEffect(() => {
-    setSelectedTransformId(compatibleTransforms[0]?.id ?? null);
     setDerivedArtifact(null);
-  }, [currentArtifact, compatibleTransforms]);
+  }, [currentArtifact]);
+
+  useEffect(() => {
+    if (currentRecipeStep && currentArtifact.kind === currentRecipeStep.inputKind) {
+      setSelectedTransformId(currentRecipeStep.id);
+    } else {
+      setSelectedTransformId(compatibleTransforms[0]?.id ?? null);
+    }
+  }, [currentArtifact, compatibleTransforms, currentRecipeStep]);
 
   async function handleImport(file: File | null) {
     if (!file) {
@@ -291,6 +339,17 @@ export default function App() {
     setCurrentArtifact(parsed as WorkbenchArtifact);
   }
 
+  function handleActivateRecipe(recipe: LensRecipe) {
+    setActiveRecipeId(recipe.id);
+    setCompletedRecipeSteps(0);
+    setTargetArtifactKind(recipe.targetKind);
+  }
+
+  function handleClearRecipe() {
+    setActiveRecipeId(null);
+    setCompletedRecipeSteps(0);
+  }
+
   function handleApplyTransform() {
     if (!selectedTransform) {
       return;
@@ -305,6 +364,14 @@ export default function App() {
     } as never);
 
     setDerivedArtifact(nextArtifact as WorkbenchArtifact);
+
+    if (
+      currentRecipeStep &&
+      selectedTransform.id === currentRecipeStep.id &&
+      nextArtifact.kind === currentRecipeStep.outputKind
+    ) {
+      setCompletedRecipeSteps((value) => value + 1);
+    }
   }
 
   function handleUseNextStepFromTargetPath() {
@@ -464,6 +531,126 @@ export default function App() {
           </div>
 
           <div className="workbench-stack">
+            <div className="workbench-card">
+              <div className="recipe-header">
+                <div>
+                  <p className={lensShellClasses.eyebrow}>Recipe mode</p>
+                  <h3 className="workbench-section-title">Named manual workflows</h3>
+                </div>
+                {activeRecipe ? (
+                  <button
+                    type="button"
+                    className="workbench-button workbench-button--subtle"
+                    onClick={handleClearRecipe}
+                  >
+                    <strong>Exit recipe mode</strong>
+                    <span>Return to freeform transform selection only.</span>
+                  </button>
+                ) : null}
+              </div>
+
+              <p className="workbench-note">
+                Freeform mode lets you choose any compatible transform. Recipe mode names a real
+                handoff path, keeps the next step visible, and still leaves every step manual.
+              </p>
+
+              <div className="workbench-actions">
+                {lensRecipes.map((recipe) => {
+                  const activatable = currentArtifact.kind === recipe.startKind;
+                  const isActive = recipe.id === activeRecipe?.id;
+
+                  return (
+                    <button
+                      key={recipe.id}
+                      type="button"
+                      className={`workbench-button ${isActive ? "workbench-button--active" : ""}`}
+                      onClick={() => handleActivateRecipe(recipe)}
+                      disabled={!activatable && !isActive}
+                    >
+                      <strong>{recipe.label}</strong>
+                      <span>{formatRecipeChain(recipe)}</span>
+                      <span>
+                        {isActive
+                          ? "Active recipe"
+                          : activatable
+                            ? "Start from the current artifact"
+                            : `Requires ${recipe.startKind} as the current artifact`}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {activeRecipe ? (
+                <div className="recipe-progress">
+                  <div className="recipe-progress__summary">
+                    <strong>{activeRecipe.label}</strong>
+                    <span>
+                      {completedRecipeSteps >= activeRecipeTransforms.length
+                        ? "Recipe complete"
+                        : `Step ${completedRecipeSteps + 1} of ${activeRecipeTransforms.length}`}
+                    </span>
+                  </div>
+
+                  <div className="recipe-progress__chain">
+                    <div className="path-chip">{activeRecipe.startKind}</div>
+                    {activeRecipeTransforms.map((transform, index) => (
+                      <div key={transform.id} className="path-step">
+                        <div className="path-arrow">→</div>
+                        <div
+                          className={`path-chip path-chip--transform ${
+                            index < completedRecipeSteps ? "path-chip--complete" : ""
+                          }`}
+                        >
+                          {transform.name}
+                        </div>
+                        <div className="path-arrow">→</div>
+                        <div
+                          className={`path-chip ${
+                            index < completedRecipeSteps ? "path-chip--complete" : ""
+                          }`}
+                        >
+                          {transform.outputKind}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {currentRecipeStep ? (
+                    <div className="recipe-progress__details">
+                      <p className={lensShellClasses.eyebrow}>Current step</p>
+                      <strong>{currentRecipeStep.name}</strong>
+                      <p className="workbench-note">{currentRecipeStep.description}</p>
+                      {currentRecipeHint?.note ? (
+                        <p className="workbench-note">
+                          <strong>Step note:</strong> {currentRecipeHint.note}
+                        </p>
+                      ) : null}
+                      {currentRecipeHint?.reviewHint ? (
+                        <p className="workbench-note">
+                          <strong>Review hint:</strong> {currentRecipeHint.reviewHint}
+                        </p>
+                      ) : null}
+                      <p className="workbench-note">
+                        {currentArtifact.kind === currentRecipeStep.inputKind
+                          ? "The expected next transform is preselected below."
+                          : `Promote or load a ${currentRecipeStep.inputKind} artifact to continue this recipe.`}
+                      </p>
+                      <p className="workbench-note">
+                        Remaining steps:{" "}
+                        {remainingRecipeTransforms.map((transform) => transform.outputKind).join(", ")}
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="workbench-note">
+                      This recipe has reached <code>{activeRecipe.targetKind}</code>. You can still
+                      inspect or export the resulting artifact manually.
+                    </p>
+                  )}
+                </div>
+              ) : null}
+            </div>
+
             <div className="workbench-card">
               <p className={lensShellClasses.eyebrow}>Lineage chain</p>
               <div className="lineage-strip" aria-label="Artifact transform lineage">
