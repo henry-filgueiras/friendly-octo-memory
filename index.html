@@ -2,14 +2,79 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta http-equiv="refresh" content="0; url=./LocalDistillery/index.html" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>friendly-octo-memory</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: "IBM Plex Sans", "Avenir Next", sans-serif;
+        background: #0f1418;
+        color: #edf4f7;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        background:
+          radial-gradient(circle at top right, rgba(224, 165, 60, 0.16), transparent 28%),
+          radial-gradient(circle at top left, rgba(93, 199, 192, 0.12), transparent 24%),
+          linear-gradient(180deg, #11181d 0%, #0c1115 100%);
+      }
+
+      main {
+        width: min(860px, calc(100vw - 2rem));
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 28px;
+        padding: 1.4rem;
+        background: rgba(15, 20, 24, 0.88);
+      }
+
+      h1,
+      h2,
+      p {
+        margin-top: 0;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 1rem;
+      }
+
+      article {
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 22px;
+        padding: 1rem;
+        background: rgba(255, 255, 255, 0.03);
+      }
+
+      a {
+        color: #e0a53c;
+      }
+
+      code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      }
+    </style>
   </head>
   <body>
-    <p>
-      Redirecting to 
-      <a href="./LocalDistillery/index.html">Local Distillery</a>.
-    </p>
+    <main>
+      <p>Local-first browser tools</p>
+      <h1>friendly-octo-memory</h1>
+      <div class="grid">
+        <article>
+          <h2>Local Distillery</h2>
+          <p>Static text distillation tool that opens directly in the browser.</p>
+          <p><a href="./LocalDistillery/index.html">Open Local Distillery</a></p>
+        </article>
+        <article>
+          <h2>Tradeoff Lens</h2>
+          <p>Decision-analysis SPA built with React, TypeScript, and Vite.</p>
+          <p>Run locally with <code>cd TradeoffLens && npm install && npm run dev</code>.</p>
+        </article>
+      </div>
+    </main>
   </body>
 </html>
