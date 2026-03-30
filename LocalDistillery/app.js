@@ -425,7 +425,7 @@ local-only processing`;
 
   function renderOutputStatus() {
     if (!state.text.trim()) {
-      outputStatus.textContent = "Waiting for source material.";
+      outputStatus.textContent = "Waiting for source material. Load the demo to preview the full artifact.";
       return;
     }
 
@@ -998,7 +998,7 @@ local-only processing`;
 
     const mermaidLines = ["graph TD"];
     nodes.forEach(function (node) {
-      mermaidLines.push("  " + node.id + "["" + escapeMermaidLabel(node.label) + ""]");
+      mermaidLines.push('  ' + node.id + '["' + escapeMermaidLabel(node.label) + '"]');
     });
     edges.forEach(function (edge) {
       mermaidLines.push("  " + edge.source + " -->|" + edge.weight + "| " + edge.target);
