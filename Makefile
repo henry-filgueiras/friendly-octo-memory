@@ -1,4 +1,16 @@
-.PHONY: tradeoff-lens-install tradeoff-lens-dev tradeoff-lens-build tradeoff-lens-preview threadline-install threadline-dev threadline-build threadline-preview local-distillery-serve
+.PHONY: evidence-ledger-install evidence-ledger-dev evidence-ledger-build evidence-ledger-preview tradeoff-lens-install tradeoff-lens-dev tradeoff-lens-build tradeoff-lens-preview threadline-install threadline-dev threadline-build threadline-preview local-distillery-serve
+
+evidence-ledger-install:
+	cd EvidenceLedger && npm install
+
+evidence-ledger-dev: evidence-ledger-install
+	cd EvidenceLedger && npm run dev -- --host 0.0.0.0
+
+evidence-ledger-build: evidence-ledger-install
+	cd EvidenceLedger && npm run build
+
+evidence-ledger-preview: evidence-ledger-build
+	cd EvidenceLedger && npm run preview -- --host 0.0.0.0
 
 tradeoff-lens-install:
 	cd TradeoffLens && npm install
