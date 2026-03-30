@@ -11,6 +11,11 @@ export interface ArtifactLabRunJournal {
   schemaVersion: 1;
   sessionId: string;
   createdAt: string;
+  forkedFrom?: {
+    sessionId: string;
+    eventId: string;
+    checkpointLabel?: string | null;
+  };
   events: ArtifactLabRunEvent[];
 }
 
@@ -65,6 +70,12 @@ export interface ArtifactExportedEvent extends ArtifactLabRunEventBase {
   source: "current" | "derived";
 }
 
+export interface CheckpointMarkedEvent extends ArtifactLabRunEventBase {
+  type: "checkpoint-marked";
+  targetEventId: string;
+  label: string;
+}
+
 export type ArtifactLabRunEvent =
   | ArtifactLoadedEvent
   | ArtifactImportedEvent
@@ -73,7 +84,8 @@ export type ArtifactLabRunEvent =
   | TransformSelectedEvent
   | TransformAppliedEvent
   | DerivedArtifactPromotedEvent
-  | ArtifactExportedEvent;
+  | ArtifactExportedEvent
+  | CheckpointMarkedEvent;
 
 export type ArtifactLabRunEventInput =
   | Omit<ArtifactLoadedEvent, "id" | "at">
@@ -83,7 +95,8 @@ export type ArtifactLabRunEventInput =
   | Omit<TransformSelectedEvent, "id" | "at">
   | Omit<TransformAppliedEvent, "id" | "at">
   | Omit<DerivedArtifactPromotedEvent, "id" | "at">
-  | Omit<ArtifactExportedEvent, "id" | "at">;
+  | Omit<ArtifactExportedEvent, "id" | "at">
+  | Omit<CheckpointMarkedEvent, "id" | "at">;
 
 export interface ArtifactLabReplayState {
   currentArtifact: WorkbenchArtifact | null;
@@ -100,8 +113,16 @@ export interface ArtifactLabTranscriptEntry {
   detail: string;
 }
 
+export interface ArtifactLabCheckpoint {
+  eventId: string;
+  labels: string[];
+}
+
+let sessionCounter = 0;
+
 function createSessionId() {
-  return `session-${Date.now()}`;
+  sessionCounter += 1;
+  return `session-${Date.now()}-${sessionCounter}`;
 }
 
 function deriveSelectedTransformId(
@@ -207,6 +228,58 @@ export function isArtifactLabRunJournal(value: unknown): value is ArtifactLabRun
   );
 }
 
+export function getArtifactLabCheckpointMap(
+  journal: ArtifactLabRunJournal
+): Record<string, string[]> {
+  const checkpoints: Record<string, string[]> = {};
+
+  for (const event of journal.events) {
+    if (event.type !== "checkpoint-marked") {
+      continue;
+    }
+
+    checkpoints[event.targetEventId] ??= [];
+    checkpoints[event.targetEventId].push(event.label);
+  }
+
+  return checkpoints;
+}
+
+export function getArtifactLabCheckpoints(journal: ArtifactLabRunJournal): ArtifactLabCheckpoint[] {
+  return Object.entries(getArtifactLabCheckpointMap(journal)).map(([eventId, labels]) => ({
+    eventId,
+    labels,
+  }));
+}
+
+export function createForkedArtifactLabRunJournal(
+  journal: ArtifactLabRunJournal,
+  targetEventId: string,
+  createdAt = new Date().toISOString()
+): ArtifactLabRunJournal {
+  const eventIndex = journal.events.findIndex((event) => event.id === targetEventId);
+
+  if (eventIndex === -1) {
+    throw new Error(`Cannot fork from unknown event ${targetEventId}.`);
+  }
+
+  const checkpointLabel =
+    getArtifactLabCheckpointMap(journal)[targetEventId]?.slice(-1)[0] ?? null;
+
+  return {
+    journalType: "ArtifactLabRunJournal",
+    schemaVersion: 1,
+    sessionId: createSessionId(),
+    createdAt,
+    forkedFrom: {
+      sessionId: journal.sessionId,
+      eventId: targetEventId,
+      checkpointLabel,
+    },
+    events: journal.events.slice(0, eventIndex + 1),
+  };
+}
+
 export function replayArtifactLabRunJournal(
   journal: ArtifactLabRunJournal
 ): ArtifactLabReplayState {
@@ -296,6 +369,7 @@ export function replayArtifactLabRunJournal(
         };
         break;
       case "artifact-exported":
+      case "checkpoint-marked":
         break;
     }
   }
@@ -375,6 +449,13 @@ export function formatArtifactLabRunEvent(
         timestamp: event.at,
         title: "Artifact exported",
         detail: `${event.artifactKind}: ${event.artifactTitle} exported as ${event.filename} (${event.source})`,
+      };
+    case "checkpoint-marked":
+      return {
+        id: event.id,
+        timestamp: event.at,
+        title: "Checkpoint marked",
+        detail: `${event.label} on ${event.targetEventId}`,
       };
   }
 }

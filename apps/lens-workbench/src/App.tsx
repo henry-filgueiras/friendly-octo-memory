@@ -20,9 +20,12 @@ import {
 import {
   appendArtifactLabRunEvent,
   createArtifactLabRunJournal,
+  createForkedArtifactLabRunJournal,
   formatArtifactLabRunEvent,
+  getArtifactLabCheckpointMap,
   getRecipeTransforms,
   type ArtifactLabRunEventInput,
+  type ArtifactLabRunJournal,
   isArtifactLabRunJournal,
   replayArtifactLabRunJournal,
 } from "./runJournal";
@@ -178,13 +181,42 @@ function formatEventTime(timestamp: string) {
   });
 }
 
+function upsertRunJournal(
+  journals: ArtifactLabRunJournal[],
+  nextJournal: ArtifactLabRunJournal
+) {
+  const existingIndex = journals.findIndex((journal) => journal.sessionId === nextJournal.sessionId);
+
+  if (existingIndex === -1) {
+    return [...journals, nextJournal];
+  }
+
+  return journals.map((journal, index) => (index === existingIndex ? nextJournal : journal));
+}
+
+function describeSession(journal: ArtifactLabRunJournal) {
+  const replayed = replayArtifactLabRunJournal(journal);
+  return replayed.currentArtifact
+    ? `${replayed.currentArtifact.kind}: ${replayed.currentArtifact.title}`
+    : journal.sessionId;
+}
+
 export default function App() {
+  const initialJournal = useMemo(
+    () => createArtifactLabRunJournal(SAMPLE_EXECUTION_PLAN_ARTIFACT),
+    []
+  );
   const artifactImportRef = useRef<HTMLInputElement | null>(null);
   const journalImportRef = useRef<HTMLInputElement | null>(null);
-  const [runJournal, setRunJournal] = useState(() =>
-    createArtifactLabRunJournal(SAMPLE_EXECUTION_PLAN_ARTIFACT)
-  );
+  const [knownRunJournals, setKnownRunJournals] = useState<ArtifactLabRunJournal[]>([
+    initialJournal,
+  ]);
+  const [currentSessionId, setCurrentSessionId] = useState(initialJournal.sessionId);
   const [targetArtifactKind, setTargetArtifactKind] = useState<LensArtifactKind | "">("");
+  const [comparisonSessionId, setComparisonSessionId] = useState<string>("");
+
+  const runJournal =
+    knownRunJournals.find((journal) => journal.sessionId === currentSessionId) ?? initialJournal;
   const projected = useMemo(() => replayArtifactLabRunJournal(runJournal), [runJournal]);
   const currentArtifact = projected.currentArtifact;
   const derivedArtifact = projected.derivedArtifact;
@@ -192,10 +224,7 @@ export default function App() {
     () => (projected.activeRecipeId ? getLensRecipe(projected.activeRecipeId) ?? null : null),
     [projected.activeRecipeId]
   );
-  const activeRecipeTransforms = useMemo(
-    () => getRecipeTransforms(activeRecipe),
-    [activeRecipe]
-  );
+  const activeRecipeTransforms = useMemo(() => getRecipeTransforms(activeRecipe), [activeRecipe]);
   const currentRecipeStep = activeRecipeTransforms[projected.completedRecipeSteps];
   const currentRecipeHint = activeRecipe?.stepHints?.[projected.completedRecipeSteps];
   const remainingRecipeTransforms = activeRecipeTransforms.slice(projected.completedRecipeSteps);
@@ -203,6 +232,23 @@ export default function App() {
     () => runJournal.events.map(formatArtifactLabRunEvent),
     [runJournal]
   );
+  const checkpointMap = useMemo(() => getArtifactLabCheckpointMap(runJournal), [runJournal]);
+  const comparisonCandidates = useMemo(
+    () => knownRunJournals.filter((journal) => journal.sessionId !== runJournal.sessionId),
+    [knownRunJournals, runJournal.sessionId]
+  );
+  const effectiveComparisonSessionId =
+    comparisonSessionId ||
+    (runJournal.forkedFrom?.sessionId &&
+    comparisonCandidates.some((journal) => journal.sessionId === runJournal.forkedFrom?.sessionId)
+      ? runJournal.forkedFrom.sessionId
+      : comparisonCandidates[0]?.sessionId ?? "");
+  const comparisonJournal = comparisonCandidates.find(
+    (journal) => journal.sessionId === effectiveComparisonSessionId
+  );
+  const comparisonProjected = comparisonJournal
+    ? replayArtifactLabRunJournal(comparisonJournal)
+    : null;
 
   if (!currentArtifact) {
     return (
@@ -237,7 +283,13 @@ export default function App() {
   );
 
   function appendEvent(input: ArtifactLabRunEventInput, at = new Date().toISOString()) {
-    setRunJournal((journal) => appendArtifactLabRunEvent(journal, input, at));
+    setKnownRunJournals((journals) =>
+      journals.map((journal) =>
+        journal.sessionId === runJournal.sessionId
+          ? appendArtifactLabRunEvent(journal, input, at)
+          : journal
+      )
+    );
   }
 
   function handleLoadArtifact(artifact: WorkbenchArtifact, source: "sample" | "manual" = "sample") {
@@ -286,7 +338,8 @@ export default function App() {
       return;
     }
 
-    setRunJournal(parsed);
+    setKnownRunJournals((journals) => upsertRunJournal(journals, parsed));
+    setCurrentSessionId(parsed.sessionId);
 
     if (replayed.activeRecipeId) {
       const recipe = getLensRecipe(replayed.activeRecipeId);
@@ -294,6 +347,8 @@ export default function App() {
     } else {
       setTargetArtifactKind("");
     }
+
+    setComparisonSessionId(parsed.forkedFrom?.sessionId ?? "");
   }
 
   function handleActivateRecipe(recipe: LensRecipe) {
@@ -318,7 +373,7 @@ export default function App() {
   }
 
   function handleApplyTransform() {
-    if (!selectedTransform) {
+    if (!selectedTransform || !currentArtifact) {
       return;
     }
 
@@ -327,7 +382,7 @@ export default function App() {
       artifactId: createArtifactId(selectedTransform.outputKind),
       createdAt: now,
       producedByApp: "lens-workbench",
-      title: buildDerivedArtifactTitle(currentArtifact as WorkbenchArtifact, selectedTransform),
+      title: buildDerivedArtifactTitle(currentArtifact, selectedTransform),
     } as never);
 
     appendEvent(
@@ -376,6 +431,39 @@ export default function App() {
     exportScenarioJson("artifact-lab.run-journal.json", runJournal);
   }
 
+  function handleMarkCheckpoint(targetEventId: string) {
+    const suggested = checkpointMap[targetEventId]?.length
+      ? `Checkpoint ${checkpointMap[targetEventId]!.length + 1}`
+      : "Checkpoint";
+    const label = window.prompt("Checkpoint name", suggested)?.trim();
+
+    if (!label) {
+      return;
+    }
+
+    appendEvent({
+      type: "checkpoint-marked",
+      targetEventId,
+      label,
+    });
+  }
+
+  function handleForkFromEvent(targetEventId: string) {
+    const forkedJournal = createForkedArtifactLabRunJournal(runJournal, targetEventId);
+    const replayed = replayArtifactLabRunJournal(forkedJournal);
+
+    setKnownRunJournals((journals) => upsertRunJournal(journals, forkedJournal));
+    setCurrentSessionId(forkedJournal.sessionId);
+    setComparisonSessionId(runJournal.sessionId);
+
+    if (replayed.activeRecipeId) {
+      const recipe = getLensRecipe(replayed.activeRecipeId);
+      setTargetArtifactKind(recipe?.targetKind ?? "");
+    } else {
+      setTargetArtifactKind("");
+    }
+  }
+
   return (
     <LensShell>
       <LensHero>
@@ -385,12 +473,12 @@ export default function App() {
           <p className="workbench-lede">
             Load a typed artifact, inspect its provenance, apply one explicit transform, and
             export the derived artifact. The run journal records what the human actually did, then
-            replays the session deterministically.
+            replays or forks the session deterministically.
           </p>
           <div className={lensShellClasses.pillRow}>
             <span className={lensShellClasses.pill}>Manual transform lab</span>
             <span className={lensShellClasses.pill}>Append-only journal</span>
-            <span className={lensShellClasses.pill}>Replayable session state</span>
+            <span className={lensShellClasses.pill}>Replayable forks</span>
           </div>
         </div>
         <div className={lensShellClasses.heroActions}>
@@ -978,6 +1066,20 @@ export default function App() {
           </div>
 
           <div className="workbench-stack">
+            {runJournal.forkedFrom ? (
+              <div className="workbench-card">
+                <p className={lensShellClasses.eyebrow}>Fork Provenance</p>
+                <p className="workbench-note">
+                  Forked from <code>{runJournal.forkedFrom.sessionId}</code> at{" "}
+                  <code>{runJournal.forkedFrom.eventId}</code>
+                  {runJournal.forkedFrom.checkpointLabel
+                    ? ` (${runJournal.forkedFrom.checkpointLabel})`
+                    : ""}
+                  .
+                </p>
+              </div>
+            ) : null}
+
             <div className="workbench-actions transcript-actions">
               <button
                 type="button"
@@ -1003,14 +1105,119 @@ export default function App() {
                   <div className="transcript-item__meta">
                     <span>{index + 1}.</span>
                     <time dateTime={entry.timestamp}>{formatEventTime(entry.timestamp)}</time>
+                    {checkpointMap[entry.id]?.map((label) => (
+                      <span key={label} className="transcript-badge">
+                        {label}
+                      </span>
+                    ))}
                   </div>
                   <div className="transcript-item__body">
                     <strong>{entry.title}</strong>
                     <p>{entry.detail}</p>
                   </div>
+                  <div className="transcript-item__actions">
+                    <button
+                      type="button"
+                      className="workbench-button workbench-button--subtle"
+                      onClick={() => handleMarkCheckpoint(entry.id)}
+                    >
+                      <strong>Mark checkpoint</strong>
+                      <span>Name this moment so it is easier to fork later.</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="workbench-button workbench-button--subtle"
+                      onClick={() => handleForkFromEvent(entry.id)}
+                    >
+                      <strong>Fork from here</strong>
+                      <span>Start a new manual session from this replay point.</span>
+                    </button>
+                  </div>
                 </li>
               ))}
             </ol>
+          </div>
+        </LensPanel>
+
+        <LensPanel>
+          <div className={lensShellClasses.panelHeader}>
+            <div>
+              <p className={lensShellClasses.eyebrow}>Session Comparison</p>
+              <h2>Head comparison</h2>
+            </div>
+          </div>
+
+          <div className="workbench-stack">
+            {comparisonCandidates.length > 0 ? (
+              <>
+                <label className="workbench-field">
+                  <span>Compare current session against</span>
+                  <select
+                    value={effectiveComparisonSessionId}
+                    onChange={(event) => setComparisonSessionId(event.target.value)}
+                  >
+                    {comparisonCandidates.map((journal) => (
+                      <option key={journal.sessionId} value={journal.sessionId}>
+                        {journal.sessionId} · {describeSession(journal)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                {comparisonJournal && comparisonProjected ? (
+                  <div className="comparison-grid">
+                    <div className="comparison-card">
+                      <p className={lensShellClasses.eyebrow}>Current session</p>
+                      <strong>{runJournal.sessionId}</strong>
+                      <p className="workbench-note">
+                        {currentArtifact.kind}: {currentArtifact.title}
+                      </p>
+                      <ul className="workbench-list">
+                        <li>
+                          Recipe: {activeRecipe?.label ?? "None"} / {projected.completedRecipeSteps} steps
+                        </li>
+                        <li>Events: {runJournal.events.length}</li>
+                        {summarizeArtifactPayload(currentArtifact).map((line) => (
+                          <li key={`current-${line}`}>{line}</li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <div className="comparison-card">
+                      <p className={lensShellClasses.eyebrow}>Comparison session</p>
+                      <strong>{comparisonJournal.sessionId}</strong>
+                      <p className="workbench-note">
+                        {comparisonProjected.currentArtifact
+                          ? `${comparisonProjected.currentArtifact.kind}: ${comparisonProjected.currentArtifact.title}`
+                          : "No current artifact"}
+                      </p>
+                      <ul className="workbench-list">
+                        <li>
+                          Recipe:{" "}
+                          {comparisonProjected.activeRecipeId
+                            ? getLensRecipe(comparisonProjected.activeRecipeId)?.label ??
+                              comparisonProjected.activeRecipeId
+                            : "None"}{" "}
+                          / {comparisonProjected.completedRecipeSteps} steps
+                        </li>
+                        <li>Events: {comparisonJournal.events.length}</li>
+                        {comparisonProjected.currentArtifact
+                          ? summarizeArtifactPayload(comparisonProjected.currentArtifact).map((line) => (
+                              <li key={`compare-${line}`}>{line}</li>
+                            ))
+                          : null}
+                      </ul>
+                    </div>
+                  </div>
+                ) : null}
+              </>
+            ) : (
+              <div className="workbench-card">
+                <p className="workbench-note">
+                  Fork a run or import another saved journal to compare session heads here.
+                </p>
+              </div>
+            )}
           </div>
         </LensPanel>
       </main>
