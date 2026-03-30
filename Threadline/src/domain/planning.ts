@@ -110,13 +110,13 @@ function getDepths(orderedIds: string[], taskById: Record<string, Task>): Record
 
   orderedIds.forEach((taskId) => {
     const task = taskById[taskId];
-    depthById[taskId] = task.dependencies.length
-      ? Math.max(
-          ...task.dependencies
-            .filter((dependencyId) => dependencyId in depthById)
-            .map((dependencyId) => depthById[dependencyId] + 1)
-        )
-      : 0;
+    const dependencyDepths = task.dependencies
+      .filter((dependencyId) => dependencyId in depthById)
+      .map((dependencyId) => depthById[dependencyId] + 1)
+      .filter(Number.isFinite);
+
+    depthById[taskId] =
+      dependencyDepths.length > 0 ? Math.max(...dependencyDepths) : 0;
   });
 
   return depthById;
@@ -150,26 +150,29 @@ function getDownstreamMap(tasks: Task[]): Record<string, string[]> {
     });
   });
 
-  const cache = new Map<string, string[]>();
+  return Object.fromEntries(
+    tasks.map((task) => {
+      const seen = new Set<string>();
+      const queue = [...(childrenById.get(task.id) || [])];
 
-  function visit(taskId: string): string[] {
-    if (cache.has(taskId)) {
-      return cache.get(taskId) as string[];
-    }
+      while (queue.length > 0) {
+        const nextId = queue.shift() as string;
 
-    const seen = new Set<string>();
+        if (nextId === task.id || seen.has(nextId)) {
+          continue;
+        }
 
-    (childrenById.get(taskId) || []).forEach((childId) => {
-      seen.add(childId);
-      visit(childId).forEach((nestedId) => seen.add(nestedId));
-    });
+        seen.add(nextId);
+        (childrenById.get(nextId) || []).forEach((childId) => {
+          if (childId !== task.id && !seen.has(childId)) {
+            queue.push(childId);
+          }
+        });
+      }
 
-    const result = Array.from(seen);
-    cache.set(taskId, result);
-    return result;
-  }
-
-  return Object.fromEntries(tasks.map((task) => [task.id, visit(task.id)]));
+      return [task.id, Array.from(seen)];
+    })
+  );
 }
 
 function buildLaneSummaries(lanes: Lane[], scheduledTasks: ScheduledTask[]): LaneSummary[] {
@@ -196,6 +199,9 @@ function buildBaseAnalysis(
   const taskById = buildTaskMap(scenario.tasks);
   const laneById = Object.fromEntries(lanes.map((lane) => [lane.id, lane]));
   const { orderedIds, cycleTaskIds } = topologicallySortTasks(scenario.tasks);
+  const orderIndexById = Object.fromEntries(
+    orderedIds.map((taskId, index) => [taskId, index])
+  ) as Record<string, number>;
   const depthById = getDepths(orderedIds, taskById);
   const downstreamById = getDownstreamMap(scenario.tasks);
   const slotAvailabilityByLaneId: Record<string, number[]> = Object.fromEntries(
@@ -260,18 +266,15 @@ function buildBaseAnalysis(
   const successorSets: Record<string, Set<string>> = Object.fromEntries(
     orderedIds.map((taskId) => [taskId, new Set<string>()])
   );
-  const predecessorSets: Record<string, Set<string>> = Object.fromEntries(
-    orderedIds.map((taskId) => [taskId, new Set<string>()])
-  );
-
   scenario.tasks.forEach((task) => {
     task.dependencies.forEach((dependencyId) => {
       if (!scheduledTaskById[dependencyId]) {
         return;
       }
 
-      successorSets[dependencyId].add(task.id);
-      predecessorSets[task.id].add(dependencyId);
+      if (orderIndexById[dependencyId] < orderIndexById[task.id]) {
+        successorSets[dependencyId].add(task.id);
+      }
     });
   });
 
@@ -281,7 +284,6 @@ function buildBaseAnalysis(
         const currentId = slotQueue[index];
         const nextId = slotQueue[index + 1];
         successorSets[currentId].add(nextId);
-        predecessorSets[nextId].add(currentId);
       }
     });
   });
@@ -291,7 +293,9 @@ function buildBaseAnalysis(
 
   [...orderedIds].reverse().forEach((taskId) => {
     const scheduledTask = scheduledTaskById[taskId];
-    const successors = Array.from(successorSets[taskId]);
+    const successors = Array.from(successorSets[taskId]).filter(
+      (successorId) => Number.isFinite(latestStartById[successorId])
+    );
     const latestFinish =
       successors.length === 0
         ? projectFinishDay
@@ -302,7 +306,10 @@ function buildBaseAnalysis(
   });
 
   scheduledTasks.forEach((scheduledTask) => {
-    const slackDays = Math.max(0, latestStartById[scheduledTask.task.id] - scheduledTask.startDay);
+    const latestStart = latestStartById[scheduledTask.task.id];
+    const slackDays = Number.isFinite(latestStart)
+      ? Math.max(0, latestStart - scheduledTask.startDay)
+      : 0;
     scheduledTask.slackDays = slackDays;
     scheduledTask.critical = slackDays < EPSILON;
   });
@@ -364,6 +371,7 @@ function buildRiskHotspots(
   delayImpacts: Record<string, DelayImpact>
 ): RiskHotspot[] {
   return scheduledTasks
+    .filter((scheduledTask) => scheduledTask.task.status !== "done" && scheduledTask.effectiveDuration > 0)
     .map((scheduledTask) => {
       const uncertainty = clamp((100 - scheduledTask.task.confidence) / 100, 0, 1);
       const delayImpact = delayImpacts[scheduledTask.task.id] ?? {

@@ -60,6 +60,106 @@ function createScenario(): ThreadlineScenario {
   });
 }
 
+function createCycleScenario(): ThreadlineScenario {
+  return syncScenario({
+    id: "scenario-cycle",
+    name: "Cycle test",
+    description: "Ensures cyclic dependencies stay deterministic and non-fatal.",
+    deadlineDay: 10,
+    mode: "expected",
+    createdAt: "2026-03-30T00:00:00.000Z",
+    updatedAt: "2026-03-30T00:00:00.000Z",
+    lanes: [{ id: "eng", name: "Engineering", parallelism: 1, color: "#5cc6c0" }],
+    tasks: [
+      {
+        id: "a",
+        name: "A",
+        notes: "",
+        laneId: "eng",
+        owner: "",
+        status: "todo",
+        estimateDays: 2,
+        confidence: 80,
+        dependencies: ["b"],
+        earliestStartDay: null,
+        mustFinishByDay: null,
+        deferrable: false,
+      },
+      {
+        id: "b",
+        name: "B",
+        notes: "",
+        laneId: "eng",
+        owner: "",
+        status: "todo",
+        estimateDays: 3,
+        confidence: 70,
+        dependencies: ["a"],
+        earliestStartDay: null,
+        mustFinishByDay: null,
+        deferrable: false,
+      },
+      {
+        id: "c",
+        name: "C",
+        notes: "",
+        laneId: "eng",
+        owner: "",
+        status: "todo",
+        estimateDays: 1,
+        confidence: 90,
+        dependencies: ["b"],
+        earliestStartDay: null,
+        mustFinishByDay: null,
+        deferrable: true,
+      },
+    ],
+  });
+}
+
+function createDoneTaskScenario(): ThreadlineScenario {
+  return syncScenario({
+    id: "scenario-done-risk",
+    name: "Done risk test",
+    description: "Ensures completed tasks do not top the risk ranking.",
+    deadlineDay: 20,
+    mode: "expected",
+    createdAt: "2026-03-30T00:00:00.000Z",
+    updatedAt: "2026-03-30T00:00:00.000Z",
+    lanes: [{ id: "eng", name: "Engineering", parallelism: 1, color: "#5cc6c0" }],
+    tasks: [
+      {
+        id: "done-task",
+        name: "Already done",
+        notes: "",
+        laneId: "eng",
+        owner: "",
+        status: "done",
+        estimateDays: 9,
+        confidence: 5,
+        dependencies: [],
+        earliestStartDay: null,
+        mustFinishByDay: null,
+        deferrable: false,
+      },
+      {
+        id: "active-task",
+        name: "Active task",
+        notes: "",
+        laneId: "eng",
+        owner: "",
+        status: "active",
+        estimateDays: 4,
+        confidence: 50,
+        dependencies: [],
+        earliestStartDay: null,
+        mustFinishByDay: null,
+        deferrable: false,
+      },
+    ],
+  });
+}
+
 describe("getTaskDuration", () => {
   it("widens duration across scenario modes based on confidence", () => {
     const task = createScenario().tasks[0];
@@ -117,5 +217,24 @@ describe("analyzeScenario", () => {
 
     expect(optimistic?.projectFinishDay).toBeLessThanOrEqual(expected?.projectFinishDay ?? 0);
     expect(conservative?.projectFinishDay).toBeGreaterThanOrEqual(expected?.projectFinishDay ?? 0);
+  });
+
+  it("survives a small dependency cycle and returns deterministic scheduled tasks", () => {
+    const analysis = analyzeScenario(createCycleScenario());
+
+    expect(analysis.cycleTaskIds).toEqual(["a", "b", "c"]);
+    expect(analysis.scheduledTasks.map((entry) => entry.task.id)).toEqual(["a", "b", "c"]);
+    expect(Number.isFinite(analysis.scheduledTaskById.a.depth)).toBe(true);
+    expect(Number.isFinite(analysis.scheduledTaskById.b.depth)).toBe(true);
+    expect(Number.isFinite(analysis.scheduledTaskById.c.depth)).toBe(true);
+    expect(analysis.scheduledTaskById.a.downstreamTaskIds).toContain("b");
+    expect(analysis.scheduledTaskById.a.downstreamTaskIds).toContain("c");
+  });
+
+  it("keeps done tasks out of the top risk hotspots", () => {
+    const analysis = analyzeScenario(createDoneTaskScenario());
+
+    expect(analysis.riskHotspots.some((entry) => entry.taskId === "done-task")).toBe(false);
+    expect(analysis.riskHotspots[0]?.taskId).toBe("active-task");
   });
 });
