@@ -55,6 +55,7 @@ textarea {
 }
 
 .workbench-demo-list,
+.workbench-actions,
 .workbench-stack,
 .workbench-field {
   display: grid;

@@ -13,8 +13,8 @@
     "moduleResolution": "Node",
     "baseUrl": ".",
     "paths": {
-      "react": ["./node_modules/react"],
-      "react/*": ["./node_modules/react/*"]
+      "lens-core": ["../../packages/lens-core/src/index.ts"],
+      "lens-core/shell.css": ["../../packages/lens-core/src/shell.css"]
     },
     "resolveJsonModule": true,
     "isolatedModules": true,

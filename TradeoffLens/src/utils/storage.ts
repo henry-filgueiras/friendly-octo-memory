@@ -1,6 +1,6 @@
 import { createEmptyScenario, syncScenario } from "../domain/helpers";
 import type { DecisionScenario } from "../domain/types";
-import { loadLocalScenario, saveLocalScenario } from "../../../packages/lens-core/src/storage";
+import { loadLocalScenario, saveLocalScenario } from "lens-core";
 
 const STORAGE_KEY = "tradeoff-lens.scenario.v1";
 
