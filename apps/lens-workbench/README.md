@@ -15,6 +15,8 @@ The current real cross-lens path is:
 
 This is intentionally manual and inspectable. The point is to make the handoff legible before any future workflow runner exists.
 
+Artifact Lab now also shows a simple path-to-target preview for registered transforms. That preview is only discovery help. Execution is still manual, one transform click per step.
+
 ## Transform limitations
 
 `execution-plan-to-claim-set` is deliberately narrow.
