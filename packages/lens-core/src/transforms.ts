@@ -188,6 +188,12 @@ export const lensTransforms: ReadonlyArray<LensTransform<LensArtifactKind, LensA
   claimSetToEvidenceMapSeedTransform as LensTransform<LensArtifactKind, LensArtifactKind>,
 ];
 
+export function getLensTransformById(
+  transformId: string
+): LensTransform<LensArtifactKind, LensArtifactKind> | undefined {
+  return lensTransforms.find((transform) => transform.id === transformId);
+}
+
 export function getCompatibleLensTransforms(
   inputKind: LensArtifactKind
 ): ReadonlyArray<LensTransform<LensArtifactKind, LensArtifactKind>> {

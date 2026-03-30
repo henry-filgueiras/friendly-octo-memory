@@ -181,7 +181,7 @@ describe("lens-core", () => {
     expect(ranked.provenance.sourceArtifacts[0]?.id).toBe("artifact-decision");
   });
 
-  it("seeds an evidence map artifact from a claim set artifact and carries provenance forward", () => {
+  it("claimSetToEvidenceMapSeedTransform seeds an empty evidence map and carries provenance forward", () => {
     const evidenceMap = claimSetToEvidenceMapSeedTransform.run(
       {
         id: "artifact-claims",
@@ -208,6 +208,7 @@ describe("lens-core", () => {
 
     expect(evidenceMap.kind).toBe("EvidenceMap");
     expect(evidenceMap.payload.claims).toHaveLength(1);
+    expect(evidenceMap.payload.claims[0]?.statement).toBe("The launch date is viable");
     expect(evidenceMap.payload.sources).toEqual([]);
     expect(evidenceMap.payload.links).toEqual([]);
     expect(evidenceMap.provenance.producedBy.transformId).toBe("claim-set-to-evidence-map-seed");
@@ -215,7 +216,7 @@ describe("lens-core", () => {
     expect(evidenceMap.provenance.sourceScenario?.app).toBe("Threadline");
   });
 
-  it("projects only critical or deadline-pressured non-done tasks from an execution plan into claims", () => {
+  it("executionPlanToClaimSetTransform projects only planning-pressure tasks into claims", () => {
     const claimSet = executionPlanToClaimSetTransform.run(
       {
         id: "artifact-plan",
@@ -286,16 +287,27 @@ describe("lens-core", () => {
 
     expect(claimSet.kind).toBe("ClaimSet");
     expect(claimSet.payload.claims).toHaveLength(3);
-    expect(claimSet.payload.claims.map((claim) => claim.id)).toEqual([
-      "claim-critical",
-      "claim-deadline",
-      "claim-critical-deadline",
+    expect(claimSet.payload.claims).toEqual([
+      {
+        id: "claim-critical",
+        statement: "Critical task is schedule-critical for delivering Launch.",
+        category: "Critical path",
+        notes: "Needs close coordination.",
+      },
+      {
+        id: "claim-deadline",
+        statement: "Deadline task is carrying explicit deadline pressure in the current plan for Launch.",
+        category: "Deadline pressure",
+        notes: "Still waiting on dry run feedback.\n\nMust finish before day 10.",
+      },
+      {
+        id: "claim-critical-deadline",
+        statement:
+          "Critical deadline task is a schedule-critical task with explicit deadline pressure in the current plan for Launch.",
+        category: "Critical deadline pressure",
+        notes: "Both critical and constrained.\n\nMust finish before day 8.",
+      },
     ]);
-    expect(claimSet.payload.claims[0]?.statement).toContain("schedule-critical");
-    expect(claimSet.payload.claims[1]?.statement).toContain("deadline pressure");
-    expect(claimSet.payload.claims[1]?.notes).toContain("Must finish before day 10.");
-    expect(claimSet.payload.claims[1]?.notes).toContain("Still waiting on dry run feedback.");
-    expect(claimSet.payload.claims[2]?.category).toBe("Critical deadline pressure");
     expect(claimSet.payload.claims.some((claim) => claim.id === "claim-ordinary")).toBe(false);
     expect(claimSet.payload.claims.some((claim) => claim.id === "claim-done")).toBe(false);
     expect(claimSet.provenance.producedBy.transformId).toBe("execution-plan-to-claim-set");

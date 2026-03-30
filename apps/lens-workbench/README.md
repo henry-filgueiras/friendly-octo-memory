@@ -15,9 +15,22 @@ The current real cross-lens path is:
 
 This is intentionally manual and inspectable. The point is to make the handoff legible before any future workflow runner exists.
 
-Artifact Lab now also shows a simple path-to-target preview for registered transforms. That preview is only discovery help. Execution is still manual, one transform click per step.
+## Freeform mode vs recipe mode
+
+Artifact Lab has two operator modes:
+
+- Freeform mode: choose any compatible transform for the current artifact
+- Recipe mode: activate a named manual workflow and let the lab preselect the expected next transform
+
+Recipe mode is still manual and inspectable. It does not run steps for you, hide intermediate artifacts, or keep background workflow state. It only makes a known path easier to follow.
+
+Artifact Lab also shows a simple path-to-target preview for registered transforms. That preview is only discovery help. Execution is still manual, one transform click per step.
 
 There is also a small `Use next step toward target` helper in the lab. It only preselects the first transform in the visible path; it does not run anything for you.
+
+The first named recipe is:
+
+- `ExecutionPlan -> ClaimSet -> EvidenceMap`
 
 ## Transform limitations
 
