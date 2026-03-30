@@ -1,3 +1,4 @@
+import type { RefObject } from "react";
 import { formatDay, formatDuration, modeLabel } from "../domain/helpers";
 import type {
   AnalysisResult,
@@ -11,6 +12,8 @@ interface AnalysisPaneProps {
   analysis: AnalysisResult;
   analysisView: AnalysisView;
   deadlineDay: number | null;
+  isGuidedDemoFocused: boolean;
+  paneRef: RefObject<HTMLElement>;
   selectedTaskId: string | null;
   onSelectTask: (taskId: string) => void;
   onSetAnalysisView: (view: AnalysisView) => void;
@@ -372,13 +375,24 @@ export function AnalysisPane({
   analysis,
   analysisView,
   deadlineDay,
+  isGuidedDemoFocused,
+  paneRef,
   selectedTaskId,
   onSelectTask,
   onSetAnalysisView,
 }: AnalysisPaneProps) {
   return (
-    <main className="pane pane--analysis">
+    <main
+      ref={paneRef}
+      className={`pane pane--analysis ${isGuidedDemoFocused ? "pane--guided-focus" : ""}`}
+    >
       <section className="section-card section-card--analysis">
+        {isGuidedDemoFocused ? (
+          <div className="analysis-focus-badge">
+            <span className="analysis-focus-badge__dot" aria-hidden="true" />
+            Guided demo focus: watch this pane
+          </div>
+        ) : null}
         <div className="section-heading">
           <div>
             <p className="eyebrow">Analysis</p>

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { GuidedDemoOverlay, type GuidedDemoStep } from "./components/GuidedDemoOverlay";
 import { buildDemoScenarios } from "./data/demos";
 import { explainCandidate } from "./domain/explanations";
 import {
@@ -35,6 +36,39 @@ import { loadScenario, saveScenario } from "./utils/storage";
 type AnalysisTab = "ranked" | "excluded" | "pairwise" | "frontier";
 
 const DEMOS = buildDemoScenarios();
+const GUIDED_DEMO_NAME = "Selecting a TV show";
+const GUIDED_DEMO_STEPS: GuidedDemoStep[] = [
+  {
+    analysisTab: "ranked",
+    candidateName: "Andor",
+    title: "Start with the winner and make the ranking legible.",
+    body:
+      "This scenario is using hard constraints for season commitment and fully released status. The ranked view shows the surviving options, their weighted scores, and which criteria are doing the heaviest lifting.",
+  },
+  {
+    analysisTab: "excluded",
+    candidateName: "Severance",
+    title: "Excluded candidates stay visible, with reasons.",
+    body:
+      "Tradeoff Lens does not quietly drop disqualified options. The excluded view spells out exactly which hard constraints knocked each one out, so the model stays arguable instead of mysterious.",
+  },
+  {
+    analysisTab: "pairwise",
+    candidateName: "Detectorists",
+    title: "Pairwise comparison shows where the margin really comes from.",
+    body:
+      "Instead of trusting the top row blindly, this table shows how each eligible option compares head-to-head. Small gaps feel very different from dominance.",
+  },
+  {
+    analysisTab: "frontier",
+    candidateName: "Detectorists",
+    xCriterionName: "Critical rating",
+    yCriterionName: "Season commitment",
+    title: "The frontier view makes the tradeoff geometry visible.",
+    body:
+      "Here the app strips things down to two numeric axes so you can see efficient tradeoffs directly. It is a useful reminder that rankings and frontiers are different lenses on the same decision.",
+  },
+];
 
 function cloneScenario(scenario: DecisionScenario): DecisionScenario {
   return syncScenario(JSON.parse(JSON.stringify(scenario)) as DecisionScenario);
@@ -70,6 +104,8 @@ export default function App() {
   const [frontierXId, setFrontierXId] = useState<string>("");
   const [frontierYId, setFrontierYId] = useState<string>("");
   const importRef = useRef<HTMLInputElement>(null);
+  const analysisPanelRef = useRef<HTMLElement | null>(null);
+  const [guidedDemoStepIndex, setGuidedDemoStepIndex] = useState<number | null>(null);
 
   const baseAnalysis = useMemo(() => analyzeScenario(scenario), [scenario]);
   const analysis = useMemo(
@@ -116,6 +152,8 @@ export default function App() {
       ) ?? null,
     [scenario.criteria, frontierYId]
   );
+  const guidedDemoStep =
+    guidedDemoStepIndex !== null ? GUIDED_DEMO_STEPS[guidedDemoStepIndex] : null;
 
   useEffect(() => {
     saveScenario(scenario);
@@ -153,6 +191,57 @@ export default function App() {
       setFrontierYId(numericCriteria[1]?.id ?? numericCriteria[0].id);
     }
   }, [numericCriteria, frontierXId, frontierYId]);
+
+  useEffect(() => {
+    if (!guidedDemoStep || scenario.name !== GUIDED_DEMO_NAME) {
+      return;
+    }
+
+    setAnalysisTab(guidedDemoStep.analysisTab);
+
+    if (guidedDemoStep.candidateName) {
+      const focusedCandidate = scenario.candidates.find(
+        (candidate) => candidate.name === guidedDemoStep.candidateName
+      );
+
+      if (focusedCandidate) {
+        setSelectedCandidateId(focusedCandidate.id);
+      }
+    }
+
+    if (guidedDemoStep.analysisTab === "frontier") {
+      const xCriterion = scenario.criteria.find(
+        (criterion) => criterion.name === guidedDemoStep.xCriterionName
+      );
+      const yCriterion = scenario.criteria.find(
+        (criterion) => criterion.name === guidedDemoStep.yCriterionName
+      );
+
+      if (xCriterion?.type === "numeric") {
+        setFrontierXId(xCriterion.id);
+      }
+
+      if (yCriterion?.type === "numeric") {
+        setFrontierYId(yCriterion.id);
+      }
+    }
+  }, [guidedDemoStep, scenario]);
+
+  useEffect(() => {
+    if (!guidedDemoStep || !analysisPanelRef.current) {
+      return;
+    }
+
+    const frameId = window.requestAnimationFrame(() => {
+      analysisPanelRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+        inline: "nearest",
+      });
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, [guidedDemoStep]);
 
   function updateScenario(updater: (current: DecisionScenario) => DecisionScenario) {
     setScenario((current) => touchScenario(updater(current)));
@@ -298,6 +387,7 @@ export default function App() {
     setSelectedCandidateId(demo.candidates[0]?.id ?? null);
     setWeightOverrides({});
     setAnalysisTab("ranked");
+    setGuidedDemoStepIndex(null);
   }
 
   function handleResetScenario() {
@@ -338,6 +428,7 @@ export default function App() {
         setScenario(nextScenario);
         setSelectedCandidateId(nextScenario.candidates[0]?.id ?? null);
         setWeightOverrides({});
+        setGuidedDemoStepIndex(null);
       } catch (error) {
         window.alert("That file does not look like a Tradeoff Lens scenario JSON export.");
       }
@@ -350,6 +441,38 @@ export default function App() {
   );
   const currentRankLookup = rankLookup(analysis.ranking);
   const baseRankLookup = rankLookup(baseAnalysis.ranking);
+
+  function handleStartGuidedDemo() {
+    const demo = DEMOS.find((entry) => entry.name === GUIDED_DEMO_NAME);
+
+    if (!demo) {
+      return;
+    }
+
+    handleLoadDemo(demo);
+    setGuidedDemoStepIndex(0);
+  }
+
+  function handleAdvanceGuidedDemo() {
+    if (guidedDemoStepIndex === null) {
+      return;
+    }
+
+    if (guidedDemoStepIndex >= GUIDED_DEMO_STEPS.length - 1) {
+      setGuidedDemoStepIndex(null);
+      return;
+    }
+
+    setGuidedDemoStepIndex(guidedDemoStepIndex + 1);
+  }
+
+  function handleRewindGuidedDemo() {
+    if (guidedDemoStepIndex === null) {
+      return;
+    }
+
+    setGuidedDemoStepIndex(Math.max(0, guidedDemoStepIndex - 1));
+  }
 
   return (
     <div className="app-shell">
@@ -370,6 +493,9 @@ export default function App() {
         </div>
 
         <div className="topbar-actions">
+          <button type="button" className="button button-secondary" onClick={handleStartGuidedDemo}>
+            Walk me through it
+          </button>
           <button type="button" className="button button-secondary" onClick={handleExportJson}>
             Export JSON
           </button>
@@ -991,7 +1117,16 @@ export default function App() {
           </section>
         </section>
 
-        <section className="panel panel-analysis">
+        <section
+          ref={analysisPanelRef}
+          className={`panel panel-analysis ${guidedDemoStep ? "panel-guided-focus" : ""}`}
+        >
+          {guidedDemoStep ? (
+            <div className="analysis-focus-badge">
+              <span className="analysis-focus-badge__dot" aria-hidden="true" />
+              Guided demo focus: watch this pane
+            </div>
+          ) : null}
           <div className="panel-header">
             <div>
               <p className="section-label">Analysis</p>
@@ -1430,6 +1565,18 @@ export default function App() {
           </section>
         </section>
       </main>
+      {guidedDemoStep ? (
+        <GuidedDemoOverlay
+          currentStep={guidedDemoStep}
+          isFirstStep={guidedDemoStepIndex === 0}
+          isLastStep={guidedDemoStepIndex === GUIDED_DEMO_STEPS.length - 1}
+          stepIndex={guidedDemoStepIndex ?? 0}
+          totalSteps={GUIDED_DEMO_STEPS.length}
+          onClose={() => setGuidedDemoStepIndex(null)}
+          onNext={handleAdvanceGuidedDemo}
+          onPrevious={handleRewindGuidedDemo}
+        />
+      ) : null}
     </div>
   );
 }
