@@ -6,7 +6,10 @@ import {
   LensPanel,
   LensShell,
   LensStatGrid,
+  claimSetToEvidenceMapSeedTransform,
+  decisionModelToRankedOptionsTransform,
   exportScenarioJson,
+  getLensArtifactDefinition,
   loadLocalScenario,
   saveLocalScenario,
   unwrapScenarioEnvelope,
@@ -134,5 +137,77 @@ describe("lens-core", () => {
     URL.createObjectURL = originalCreateObjectURL;
     URL.revokeObjectURL = originalRevokeObjectURL;
     Object.assign(globalThis, { document: originalDocument });
+  });
+
+  it("exposes artifact definitions through the tiny registry", () => {
+    expect(getLensArtifactDefinition("DecisionModel")?.label).toBe("Decision Model");
+    expect(getLensArtifactDefinition("EvidenceMap")?.description).toContain("evidence");
+  });
+
+  it("projects ranked options from a scored decision model artifact", () => {
+    const ranked = decisionModelToRankedOptionsTransform.run(
+      {
+        id: "artifact-decision",
+        kind: "DecisionModel",
+        schemaVersion: 1,
+        title: "Tool choice",
+        createdAt: "2026-03-30T00:00:00.000Z",
+        payload: {
+          subject: "Tool choice",
+          criteria: [],
+          options: [
+            { id: "a", name: "Alpha", score: 82 },
+            { id: "b", name: "Beta", score: 91 },
+            { id: "c", name: "Gamma", excluded: true, excludedReasons: ["Too expensive"] },
+          ],
+        },
+        provenance: {
+          producedBy: { app: "TradeoffLens" },
+          sourceArtifacts: [],
+          sourceScenario: { app: "TradeoffLens", scenarioId: "scenario-1" },
+        },
+      },
+      {
+        artifactId: "artifact-ranked",
+        createdAt: "2026-03-30T00:10:00.000Z",
+        producedByApp: "lens-workbench",
+      }
+    );
+
+    expect(ranked.kind).toBe("RankedOptions");
+    expect(ranked.payload.ranked.map((entry) => entry.optionName)).toEqual(["Beta", "Alpha"]);
+    expect(ranked.payload.excluded[0]?.reasons).toEqual(["Too expensive"]);
+    expect(ranked.provenance.sourceArtifacts[0]?.id).toBe("artifact-decision");
+  });
+
+  it("seeds an evidence map artifact from a claim set artifact", () => {
+    const evidenceMap = claimSetToEvidenceMapSeedTransform.run(
+      {
+        id: "artifact-claims",
+        kind: "ClaimSet",
+        schemaVersion: 1,
+        title: "Launch claims",
+        createdAt: "2026-03-30T00:00:00.000Z",
+        payload: {
+          subject: "Launch claims",
+          claims: [{ id: "claim-1", statement: "The launch date is viable", category: "schedule" }],
+        },
+        provenance: {
+          producedBy: { app: "Threadline" },
+          sourceArtifacts: [],
+          sourceScenario: { app: "Threadline", scenarioId: "plan-1" },
+        },
+      },
+      {
+        artifactId: "artifact-evidence",
+        createdAt: "2026-03-30T00:20:00.000Z",
+        producedByApp: "EvidenceLedger",
+      }
+    );
+
+    expect(evidenceMap.kind).toBe("EvidenceMap");
+    expect(evidenceMap.payload.claims).toHaveLength(1);
+    expect(evidenceMap.payload.sources).toEqual([]);
+    expect(evidenceMap.payload.links).toEqual([]);
   });
 });
