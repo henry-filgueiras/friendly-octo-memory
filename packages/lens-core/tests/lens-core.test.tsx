@@ -210,6 +210,8 @@ describe("lens-core", () => {
     expect(evidenceMap.payload.claims).toHaveLength(1);
     expect(evidenceMap.payload.sources).toEqual([]);
     expect(evidenceMap.payload.links).toEqual([]);
+    expect(evidenceMap.provenance.producedBy.transformId).toBe("claim-set-to-evidence-map-seed");
+    expect(evidenceMap.provenance.sourceArtifacts[0]?.id).toBe("artifact-claims");
   });
 
   it("projects only critical or deadline-pressured tasks from an execution plan into claims", () => {
@@ -272,5 +274,7 @@ describe("lens-core", () => {
       "claim-deadline",
     ]);
     expect(claimSet.payload.claims[1]?.notes).toContain("Must finish before day 10.");
+    expect(claimSet.provenance.producedBy.transformId).toBe("execution-plan-to-claim-set");
+    expect(claimSet.provenance.sourceArtifacts[0]?.id).toBe("artifact-plan");
   });
 });

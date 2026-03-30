@@ -2,7 +2,18 @@
 
 `lens-workbench` is a tiny sandbox app for the extracted `packages/lens-core` chassis.
 
-It intentionally does **not** contain a generic engine. It just proves that the shared shell and demo contract are useful on their own.
+It intentionally does **not** contain a generic engine or workflow runner. It is an operator bench for the shared shell, artifact envelopes, and explicit transforms.
+
+## Manual artifact flow
+
+The current real cross-lens path is:
+
+1. In `Threadline`, export an `ExecutionPlan` artifact
+2. In `Artifact Lab`, import that artifact and apply `execution-plan-to-claim-set`
+3. Export the derived `ClaimSet` artifact
+4. In `EvidenceLedger`, import the `ClaimSet` artifact to seed claims with empty sources and links
+
+This is intentionally manual and inspectable. The point is to make the handoff legible before any future workflow runner exists.
 
 ## Run locally
 

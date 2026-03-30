@@ -136,6 +136,20 @@ export interface LensArtifactEnvelope<TKind extends LensArtifactKind = LensArtif
   provenance: LensArtifactProvenance;
 }
 
+export function isLensArtifactEnvelope(value: unknown): value is LensArtifactEnvelope {
+  return Boolean(
+    value &&
+      typeof value === "object" &&
+      "id" in value &&
+      "kind" in value &&
+      "schemaVersion" in value &&
+      "title" in value &&
+      "createdAt" in value &&
+      "payload" in value &&
+      "provenance" in value
+  );
+}
+
 export interface LensArtifactDefinition<TKind extends LensArtifactKind = LensArtifactKind> {
   kind: TKind;
   label: string;
