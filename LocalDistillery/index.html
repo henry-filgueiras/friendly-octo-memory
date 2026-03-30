@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Local Distillery</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Local-only browser tool</p>
+          <h1>Local Distillery</h1>
+          <p class="subtitle">
+            Distill notes, meetings, specs, logs, and research into structured
+            local artifacts without sending data anywhere.
+          </p>
+          <div class="promise-strip">
+            <span class="pill">No backend</span>
+            <span class="pill">No telemetry</span>
+            <span class="pill">No network processing</span>
+          </div>
+        </div>
+        <div class="topbar-actions">
+          <button id="load-demo-button" class="button button-secondary" type="button">
+            Load demo
+          </button>
+          <button id="clear-button" class="button button-ghost" type="button">
+            Clear
+          </button>
+        </div>
+      </header>
+
+      <main class="workspace">
+        <section class="panel input-panel">
+          <div class="panel-header">
+            <div>
+              <p class="panel-label">Input</p>
+              <h2>Source Material</h2>
+            </div>
+            <div class="metadata-strip" id="input-metadata"></div>
+          </div>
+
+          <div class="controls-grid">
+            <label class="control">
+              <span>Mode preset</span>
+              <small class="control-help">Shapes ranking hints for the kind of material you dropped in.</small>
+              <select id="mode-select"></select>
+            </label>
+            <label class="control">
+              <span>Compression strength</span>
+              <small class="control-help">Controls how many top sentences, motifs, and concepts are kept.</small>
+              <select id="strength-select"></select>
+            </label>
+          </div>
+
+          <div class="console-strip">
+            <label class="toggle-inline" for="auto-distill-toggle">
+              <input id="auto-distill-toggle" type="checkbox" checked />
+              <span>Auto-distill as I type</span>
+            </label>
+            <p class="console-hint">Manual shortcut: <code>Cmd/Ctrl + Enter</code></p>
+          </div>
+
+          <div class="dropzone" id="dropzone" tabindex="0">
+            <p>Paste text here or drop a local file</p>
+            <p class="dropzone-detail">
+              Accepts <code>.txt</code>, <code>.md</code>, <code>.json</code>,
+              <code>.jsonl</code>, <code>.log</code>, and <code>.js</code>
+            </p>
+            <p class="dropzone-detail">
+              Choosing a file loads it into the editor below.
+            </p>
+            <label class="button button-secondary file-button">
+              Choose file
+              <input id="file-input" type="file" accept=".txt,.md,.json,.jsonl,.log,.js,text/plain,application/json,text/markdown,text/javascript,application/javascript" />
+            </label>
+          </div>
+
+          <div class="editor-label-row">
+            <p class="panel-label">Working Draft</p>
+            <div class="source-state" id="source-state"></div>
+          </div>
+
+          <label class="textarea-wrap">
+            <span class="sr-only">Source text</span>
+            <textarea
+              id="source-text"
+              spellcheck="false"
+              placeholder="Paste meeting notes, specs, logs, or research here. If auto-distill is off, click Distill now when you are ready."
+            ></textarea>
+          </label>
+
+          <div class="composer-footer">
+            <p class="composer-help" id="input-status">
+              Paste text or choose a local file. Auto-distill is on by default, or you can click Distill now.
+            </p>
+            <div class="composer-actions">
+              <button id="distill-button" class="button button-secondary" type="button">
+                Distill now
+              </button>
+            </div>
+          </div>
+
+          <button class="empty-state" id="empty-state" type="button">
+            <h3>Try the demo dataset</h3>
+            <p>
+              Load a realistic sample to preview summaries, action extraction,
+              open questions, motif detection, and export formats.
+            </p>
+          </button>
+        </section>
+
+        <section class="panel output-panel">
+          <div class="panel-header">
+            <div>
+              <p class="panel-label">Compression</p>
+              <h2>Distilled Artifact</h2>
+              <p class="output-status" id="output-status">
+                Waiting for source material.
+              </p>
+            </div>
+            <div class="export-actions">
+              <button id="export-md-button" class="button button-secondary" type="button">
+                Export Markdown
+              </button>
+              <button id="export-json-button" class="button button-secondary" type="button">
+                Export JSON
+              </button>
+            </div>
+          </div>
+
+          <div class="section-toggles" id="section-toggles"></div>
+          <div class="results-list" id="results-list"></div>
+        </section>
+      </main>
+    </div>
+
+    <template id="result-section-template">
+      <article class="result-card">
+        <div class="result-header">
+          <div>
+            <p class="result-kicker"></p>
+            <h3></h3>
+          </div>
+          <button class="button button-ghost copy-button" type="button">Copy</button>
+        </div>
+        <div class="result-body"></div>
+      </article>
+    </template>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
