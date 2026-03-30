@@ -84,10 +84,60 @@ export function getDefaultValueForCriterion(criterion: Criterion): CandidateValu
     case "boolean":
       return null;
     case "enum":
-      return criterion.options[0]?.label ?? "";
+      return criterion.options[0]?.id ?? "";
     case "note":
       return "";
   }
+}
+
+export function getEnumOptionByValue(
+  criterion: EnumCriterion,
+  value: CandidateValue
+): EnumOption | undefined {
+  if (typeof value !== "string" || value.length === 0) {
+    return undefined;
+  }
+
+  return criterion.options.find(
+    (option) => option.id === value || option.label === value
+  );
+}
+
+export function getEnumOptionLabel(
+  criterion: EnumCriterion,
+  value: CandidateValue
+): string {
+  if (value === null || value === "") {
+    return "Unset";
+  }
+
+  const option = getEnumOptionByValue(criterion, value);
+  return option?.label ?? String(value);
+}
+
+function normalizeEnumStoredValue(
+  criterion: EnumCriterion,
+  value: CandidateValue
+): string {
+  if (value === "") {
+    return "";
+  }
+
+  const option = getEnumOptionByValue(criterion, value);
+
+  if (option) {
+    return option.id;
+  }
+
+  return criterion.options[0]?.id ?? "";
+}
+
+function normalizeEnumAllowedValues(criterion: EnumCriterion): string[] {
+  const normalized = criterion.allowedValues
+    .map((value) => getEnumOptionByValue(criterion, value)?.id ?? null)
+    .filter((value): value is string => value !== null);
+
+  return Array.from(new Set(normalized));
 }
 
 export function convertCriterionType(
@@ -114,32 +164,33 @@ export function cloneCandidate(candidate: Candidate): Candidate {
 }
 
 export function syncScenario(scenario: DecisionScenario): DecisionScenario {
-  const candidates = scenario.candidates.map((candidate) => {
-    const values: Record<string, CandidateValue> = {};
-
-    scenario.criteria.forEach((criterion) => {
-      const currentValue = candidate.values[criterion.id];
-      values[criterion.id] =
-        currentValue === undefined ? getDefaultValueForCriterion(criterion) : currentValue;
-    });
-
-    return {
-      ...candidate,
-      values,
-    };
-  });
-
   const criteria = scenario.criteria.map((criterion) => {
     if (criterion.type !== "enum") {
       return criterion;
     }
 
-    const optionLabels = criterion.options.map((option) => option.label);
-    const allowedValues = criterion.allowedValues.filter((value) => optionLabels.includes(value));
-
     return {
       ...criterion,
-      allowedValues,
+      allowedValues: normalizeEnumAllowedValues(criterion),
+    };
+  });
+
+  const candidates = scenario.candidates.map((candidate) => {
+    const values: Record<string, CandidateValue> = {};
+
+    criteria.forEach((criterion) => {
+      const currentValue = candidate.values[criterion.id];
+      values[criterion.id] =
+        currentValue === undefined
+          ? getDefaultValueForCriterion(criterion)
+          : criterion.type === "enum"
+            ? normalizeEnumStoredValue(criterion, currentValue)
+            : currentValue;
+    });
+
+    return {
+      ...candidate,
+      values,
     };
   });
 
@@ -198,8 +249,8 @@ export function updateEnumOptionLabels(
 ): EnumCriterion {
   const allowedLookup = new Set(criterion.allowedValues);
   const allowedValues = nextOptions
-    .map((option) => option.label)
-    .filter((label) => allowedLookup.has(label));
+    .map((option) => option.id)
+    .filter((id) => allowedLookup.has(id));
 
   return {
     ...criterion,

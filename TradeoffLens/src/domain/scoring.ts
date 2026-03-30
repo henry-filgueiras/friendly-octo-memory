@@ -1,4 +1,4 @@
-import { clamp, formatNumber } from "./helpers";
+import { clamp, formatNumber, getEnumOptionByValue, getEnumOptionLabel } from "./helpers";
 import type {
   AnalysisResult,
   Candidate,
@@ -104,9 +104,16 @@ function getConstraintReasons(candidate: Candidate, criterion: Criterion): strin
         return [`${criterion.name} must be set to one of the allowed values.`];
       }
 
-      if (!criterion.allowedValues.includes(value)) {
+      const selectedOption = getEnumOptionByValue(criterion, value);
+      const selectedValue = selectedOption?.id ?? value;
+
+      if (!criterion.allowedValues.includes(selectedValue)) {
         return [
-          `${criterion.name} must be one of: ${criterion.allowedValues.join(", ") || "none selected"}.`,
+          `${criterion.name} must be one of: ${
+            criterion.allowedValues
+              .map((allowedValue) => getEnumOptionLabel(criterion, allowedValue))
+              .join(", ") || "none selected"
+          }.`,
         ];
       }
 
@@ -124,7 +131,7 @@ function buildNumericMeta(
   const numericMetaByCriterionId: Record<string, NumericCriterionMeta> = {};
 
   criteria.forEach((criterion) => {
-    if (criterion.type !== "numeric" || criterion.weight <= 0) {
+    if (criterion.type !== "numeric") {
       return;
     }
 
@@ -155,7 +162,7 @@ function getEnumUtility(candidateValue: CandidateValue, criterion: Criterion): n
     return 0;
   }
 
-  const option = criterion.options.find((entry) => entry.label === candidateValue);
+  const option = getEnumOptionByValue(criterion, candidateValue);
   return option ? clamp(option.score / 100, 0, 1) : 0;
 }
 
@@ -208,7 +215,7 @@ function getUtility(
       return {
         utility,
         normalizedValue: utility,
-        displayValue: formatValue(candidateValue),
+        displayValue: getEnumOptionLabel(criterion, candidateValue),
       };
     }
     case "note":
@@ -352,7 +359,7 @@ export function analyzeScenario(
   weightOverrides: Record<string, number> = {}
 ): AnalysisResult {
   const criteria = scenario.criteria.map((criterion) =>
-    isScoredCriterion(criterion)
+    criterion.type !== "note"
       ? {
           ...criterion,
           weight: clamp(weightOverrides[criterion.id] ?? criterion.weight, 0, 100),

@@ -1,4 +1,4 @@
-import { formatNumber } from "./helpers";
+import { formatNumber, getEnumOptionLabel } from "./helpers";
 import { getDominatedIds, getDominators } from "./scoring";
 import type {
   AnalysisResult,
@@ -52,7 +52,9 @@ function buildImprovementHint(
       return `set ${criterion.name} to ${desired ? "true" : "false"}`;
     }
     case "enum":
-      return `shift ${criterion.name} toward ${String(leaderValue || "a higher-scoring option")}`;
+      return `shift ${criterion.name} toward ${
+        leaderValue ? getEnumOptionLabel(criterion, leaderValue as CandidateValue) : "a higher-scoring option"
+      }`;
     case "note":
       return `clarify ${criterion.name}`;
   }

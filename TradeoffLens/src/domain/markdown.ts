@@ -1,4 +1,4 @@
-import { formatNumber } from "./helpers";
+import { formatNumber, getEnumOptionLabel } from "./helpers";
 import { explainCandidate } from "./explanations";
 import type { AnalysisResult, DecisionScenario } from "./types";
 
@@ -62,7 +62,11 @@ export function buildMarkdownSummary(
       lines.push(
         `- ${criterion.name}: enum, weight ${criterion.weight}, options ${options}${
           criterion.constraintEnabled
-            ? `, allowed values ${criterion.allowedValues.join(", ")}`
+            ? `, allowed values ${
+                criterion.allowedValues
+                  .map((value) => getEnumOptionLabel(criterion, value))
+                  .join(", ") || "none selected"
+              }`
             : ""
         }`
       );

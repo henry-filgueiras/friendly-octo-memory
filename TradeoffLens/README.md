@@ -20,7 +20,7 @@ Tradeoff Lens is a local-only browser tool for comparing options under explicit 
 ### Dev mode
 
 ```bash
-cd /Users/henry/friendly-octo-memory/TradeoffLens
+cd TradeoffLens
 npm install
 npm run dev
 ```
@@ -30,7 +30,6 @@ Then open the local Vite URL shown in the terminal, typically `http://localhost:
 If you want a repo-root shortcut instead of remembering the folder change:
 
 ```bash
-cd /Users/henry/friendly-octo-memory
 make tradeoff-lens-dev
 ```
 
@@ -39,47 +38,46 @@ make tradeoff-lens-dev
 To produce the production bundle:
 
 ```bash
-cd /Users/henry/friendly-octo-memory/TradeoffLens
+cd TradeoffLens
 npm run build
 ```
 
-This writes the compiled app to [`dist/`](/Users/henry/friendly-octo-memory/TradeoffLens/dist).
+This writes the compiled app to [`dist/`](./dist).
 
 To preview the built app locally:
 
 ```bash
-cd /Users/henry/friendly-octo-memory/TradeoffLens
+cd TradeoffLens
 npm run preview -- --host 0.0.0.0
 ```
 
 Or from the repo root:
 
 ```bash
-cd /Users/henry/friendly-octo-memory
 make tradeoff-lens-preview
 ```
 
 ### Important note
 
-Do not serve the source folder with a plain static server like `python3 -m http.server` and then open `TradeoffLens/index.html`. The source app references [`src/main.tsx`](/Users/henry/friendly-octo-memory/TradeoffLens/src/main.tsx), which must be transformed by Vite in dev mode or compiled into `dist/` first.
+Do not serve the source folder with a plain static server like `python3 -m http.server` and then open `TradeoffLens/index.html`. The source app references [`src/main.tsx`](./src/main.tsx), which must be transformed by Vite in dev mode or compiled into `dist/` first.
 
 ## Test
 
 ```bash
-cd /Users/henry/friendly-octo-memory/TradeoffLens
+cd TradeoffLens
 npm test
 ```
 
 ## Project structure
 
-- [`index.html`](/Users/henry/friendly-octo-memory/TradeoffLens/index.html): Vite entry HTML
-- [`src/App.tsx`](/Users/henry/friendly-octo-memory/TradeoffLens/src/App.tsx): main React UI and layout
-- [`src/domain/scoring.ts`](/Users/henry/friendly-octo-memory/TradeoffLens/src/domain/scoring.ts): normalization, scoring, exclusion, dominance, pairwise, Pareto
-- [`src/domain/explanations.ts`](/Users/henry/friendly-octo-memory/TradeoffLens/src/domain/explanations.ts): plain-English reasoning
-- [`src/data/demos.ts`](/Users/henry/friendly-octo-memory/TradeoffLens/src/data/demos.ts): built-in demo scenarios
-- [`src/utils/storage.ts`](/Users/henry/friendly-octo-memory/TradeoffLens/src/utils/storage.ts): local persistence
-- [`tests/scoring.test.ts`](/Users/henry/friendly-octo-memory/TradeoffLens/tests/scoring.test.ts): unit tests for core scoring behavior
-- [`/Users/henry/friendly-octo-memory/Makefile`](/Users/henry/friendly-octo-memory/Makefile): repo-root shortcuts for install, dev, build, and preview
+- [`index.html`](./index.html): Vite entry HTML
+- [`src/App.tsx`](./src/App.tsx): main React UI and layout
+- [`src/domain/scoring.ts`](./src/domain/scoring.ts): normalization, scoring, exclusion, dominance, pairwise, Pareto
+- [`src/domain/explanations.ts`](./src/domain/explanations.ts): plain-English reasoning
+- [`src/data/demos.ts`](./src/data/demos.ts): built-in demo scenarios
+- [`src/utils/storage.ts`](./src/utils/storage.ts): local persistence
+- [`tests/scoring.test.ts`](./tests/scoring.test.ts): unit tests for core scoring behavior
+- [`../Makefile`](../Makefile): repo-root shortcuts for install, dev, build, and preview
 
 ## Scoring math
 

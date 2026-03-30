@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { analyzeScenario, normalizeNumericValue } from "../src/domain/scoring";
+import {
+  analyzeScenario,
+  computeParetoFrontier,
+  normalizeNumericValue,
+} from "../src/domain/scoring";
+import { syncScenario, updateEnumOptionLabels } from "../src/domain/helpers";
 import type { DecisionScenario } from "../src/domain/types";
 
 function createScenario(): DecisionScenario {
@@ -124,6 +129,93 @@ function createDominanceScenario(): DecisionScenario {
   };
 }
 
+function createEnumScenario(): DecisionScenario {
+  return {
+    id: "scenario-3",
+    name: "Enum scenario",
+    description: "Scenario used for enum stability tests.",
+    createdAt: "2026-03-30T00:00:00.000Z",
+    updatedAt: "2026-03-30T00:00:00.000Z",
+    criteria: [
+      {
+        id: "fit",
+        name: "Fit",
+        type: "enum",
+        weight: 50,
+        constraintEnabled: true,
+        options: [
+          { id: "fit-high", label: "High", score: 100 },
+          { id: "fit-medium", label: "Medium", score: 60 },
+          { id: "fit-low", label: "Low", score: 20 },
+        ],
+        allowedValues: ["fit-high", "fit-medium"],
+      },
+    ],
+    candidates: [
+      {
+        id: "a",
+        name: "A",
+        notes: "",
+        values: {
+          fit: "fit-medium",
+        },
+      },
+    ],
+  };
+}
+
+function createZeroWeightFrontierScenario(): DecisionScenario {
+  return {
+    id: "scenario-4",
+    name: "Zero-weight frontier",
+    description: "Scenario used for frontier tests.",
+    createdAt: "2026-03-30T00:00:00.000Z",
+    updatedAt: "2026-03-30T00:00:00.000Z",
+    criteria: [
+      {
+        id: "speed",
+        name: "Speed",
+        type: "numeric",
+        direction: "maximize",
+        weight: 100,
+        constraintEnabled: false,
+        minConstraint: null,
+        maxConstraint: null,
+      },
+      {
+        id: "price",
+        name: "Price",
+        type: "numeric",
+        direction: "minimize",
+        weight: 0,
+        constraintEnabled: false,
+        minConstraint: null,
+        maxConstraint: null,
+      },
+    ],
+    candidates: [
+      {
+        id: "a",
+        name: "A",
+        notes: "",
+        values: { speed: 80, price: 10 },
+      },
+      {
+        id: "b",
+        name: "B",
+        notes: "",
+        values: { speed: 90, price: 20 },
+      },
+      {
+        id: "c",
+        name: "C",
+        notes: "",
+        values: { speed: 100, price: 30 },
+      },
+    ],
+  };
+}
+
 describe("normalizeNumericValue", () => {
   it("normalizes maximize criteria", () => {
     expect(normalizeNumericValue(15, 10, 20, "maximize")).toBeCloseTo(0.5);
@@ -219,5 +311,56 @@ describe("analyzeScenario", () => {
     expect(baseline.ranking[0].candidate.id).toBe("a");
     expect(shifted.ranking[0].candidate.id).toBe("b");
     expect(shifted.ranking.map((entry) => entry.candidate.id)).toEqual(["b", "c", "a"]);
+  });
+});
+
+describe("enum stability", () => {
+  it("renaming an enum option does not change candidate selections", () => {
+    const scenario = createEnumScenario();
+    const criterion = scenario.criteria[0];
+
+    if (criterion.type !== "enum") {
+      throw new Error("Expected enum criterion");
+    }
+
+    const renamed = updateEnumOptionLabels(criterion, [
+      { ...criterion.options[0], label: "Excellent" },
+      ...criterion.options.slice(1),
+    ]);
+    const synced = syncScenario({
+      ...scenario,
+      criteria: [renamed],
+    });
+
+    expect(synced.candidates[0].values.fit).toBe("fit-medium");
+  });
+
+  it("renaming an enum option does not clear allowed constraint values", () => {
+    const scenario = createEnumScenario();
+    const criterion = scenario.criteria[0];
+
+    if (criterion.type !== "enum") {
+      throw new Error("Expected enum criterion");
+    }
+
+    const renamed = updateEnumOptionLabels(criterion, criterion.options.map((option) =>
+      option.id === "fit-high" ? { ...option, label: "Excellent" } : option
+    ));
+
+    expect(renamed.allowedValues).toEqual(["fit-high", "fit-medium"]);
+  });
+});
+
+describe("computeParetoFrontier", () => {
+  it("supports zero-weight numeric criteria in frontier analysis", () => {
+    const scenario = createZeroWeightFrontierScenario();
+    const analysis = analyzeScenario(scenario);
+    const points = computeParetoFrontier(scenario, analysis, "price", "speed");
+
+    expect(points).toHaveLength(3);
+    expect(points.map((point) => point.candidateId)).toEqual(["c", "b", "a"]);
+    expect(points.find((point) => point.candidateId === "a")?.xUtility).toBeCloseTo(1);
+    expect(points.find((point) => point.candidateId === "b")?.xUtility).toBeCloseTo(0.5);
+    expect(points.find((point) => point.candidateId === "c")?.xUtility).toBeCloseTo(0);
   });
 });
