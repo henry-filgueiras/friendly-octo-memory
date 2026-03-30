@@ -7,6 +7,43 @@ The key idea is simple:
 - scenario state stays local to each app
 - stable outputs travel between apps as typed artifacts
 - transforms between artifacts are explicit, narrow, and provenance-aware
+- durable workflow state is append-only and records artifact transitions explicitly
+
+## Three different kinds of state
+
+The model works better if we keep three kinds of state separate.
+
+### Tool-local editable scenario state
+
+This is the mutable working state inside a lens app.
+
+- owned by one app
+- editable
+- may contain incomplete edits and helper fields
+- not a stable interop contract
+
+### Stable typed artifact outputs
+
+These are exported snapshots that can move between tools.
+
+- typed by artifact kind
+- versioned
+- provenance-aware
+- stable enough to reference in later workflow steps
+
+### Workflow run state
+
+This is not the scenario and not the artifact payload.
+
+It is the durable execution history of a workflow:
+
+- which artifacts were registered
+- which transforms were requested, started, completed, or failed
+- where human review occurred
+- when branches split or merged
+- what became superseded
+
+This state should be append-only. It should describe transitions, not hide them inside a mutable context blob.
 
 ## Why artifacts instead of shared scenarios
 
@@ -97,6 +134,109 @@ That is enough to explain a workflow without building a full runner yet.
 
 Importantly, the DAG is about artifact lineage, not live execution semantics.
 
+## Append-only workflow event model
+
+To connect artifact interop to durable workflow management, workflow execution should be recorded as append-only events.
+
+Recommended event vocabulary:
+
+- `ArtifactRegistered`
+- `TransformRequested`
+- `TransformStarted`
+- `TransformCompleted`
+- `TransformFailed`
+- `HumanDecisionRecorded`
+- `WorkflowBranched`
+- `WorkflowMerged`
+- `ArtifactSuperseded`
+- `SchemaBridgeApplied`
+
+These events are intentionally explicit:
+
+- artifacts appear by being registered
+- transforms move through visible lifecycle stages
+- human intervention is recorded rather than implied
+- branching and merging become first-class history
+- schema bridging is observable instead of hidden inside deserialization
+
+This makes replay and auditing possible without a giant mutable workflow object.
+
+## Minimal declarative workflow spec
+
+The workflow spec should stay small and declarative. It should define:
+
+- allowed artifact kinds
+- a transform graph
+- readiness or guard conditions
+- human review points
+- terminal desired artifact kinds
+
+The spec should not contain app-engine semantics. It should only say what transitions are allowed and what kinds of artifacts must exist before a step is ready.
+
+Example shape:
+
+- allowed kinds: `ProblemFrame`, `DecisionModel`, `RankedOptions`, `RecommendationPacket`
+- steps:
+  - `DecisionModel -> RankedOptions`
+  - `RankedOptions + ProblemFrame -> RecommendationPacket`
+- guards:
+  - all required artifact kinds present
+  - human decision recorded for a named review point
+- terminal artifacts:
+  - `RecommendationPacket`
+
+Guard conditions should be explicit and small, such as:
+
+- all artifacts of certain kinds exist
+- any artifact of certain kinds exists
+- a named human decision has been recorded
+
+## Replay and projections
+
+Append-only events are most useful when projections are simple to derive.
+
+The initial projection set should include:
+
+### Current artifact set
+
+The latest active artifacts that exist in the run, excluding anything marked as superseded unless the consumer explicitly asks for history.
+
+### Ready transform frontier
+
+The set of transform steps whose input requirements are satisfied and whose guards currently pass.
+
+### Run status
+
+A compact projection such as:
+
+- `idle`
+- `waiting`
+- `running`
+- `needs_human_review`
+- `completed`
+- `failed`
+
+### Provenance graph
+
+The lineage graph connecting source artifacts, transform applications, derived artifacts, schema bridges, and branch/merge events.
+
+### Branch history
+
+The ordered history of branches, including:
+
+- when a branch was created
+- what branch it came from
+- whether it is still active
+- whether and when it merged
+
+Replay should be deterministic because the event log is explicit about transitions.
+
+## Schema bridges
+
+Schema compatibility should also be explicit. If an artifact is upgraded across schema versions, that should appear as a `SchemaBridgeApplied` event rather than silently mutating the artifact in place.
+
+That keeps provenance honest and avoids hidden version-magic.
+
 ## Editable scenario state vs stable artifact outputs
 
 This distinction is the main safety rail.
@@ -138,6 +278,13 @@ These are output-oriented nouns, not scenario schemas.
 - transforming every tool output into every other tool input
 - semantic equivalence between decision, planning, and evidence engines
 
+It also intentionally does not solve:
+
+- scheduling policy for transform execution
+- durable storage implementation details
+- conflict resolution for merges beyond recording that a merge happened
+- generic transformation of app-local scenario state
+
 Those are future questions, and only worth answering if repeated real workflows demand them.
 
 ## Current recommendation
@@ -148,5 +295,6 @@ Implement only:
 - a tiny artifact registry
 - a tiny transform contract type
 - one or two narrow example transforms
+- a thin workflow type layer if it clarifies the append-only orchestration boundary
 
 Stop there until the repo demonstrates repeated real workflows that need more.
