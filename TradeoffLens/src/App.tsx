@@ -31,11 +31,18 @@ import type {
   EnumCriterion,
   EnumOption,
 } from "./domain/types";
+import {
+  downloadText,
+  exportScenarioJson,
+  readJsonFile,
+  unwrapScenarioEnvelope,
+} from "../../packages/lens-core/src/io";
 import { loadScenario, saveScenario } from "./utils/storage";
 
 type AnalysisTab = "ranked" | "excluded" | "pairwise" | "frontier";
 
 const DEMOS = buildDemoScenarios();
+const GUIDED_DEMO_ID = "selecting-a-tv-show";
 const GUIDED_DEMO_NAME = "Selecting a TV show";
 const GUIDED_DEMO_STEPS: GuidedDemoStep[] = [
   {
@@ -76,16 +83,6 @@ function cloneScenario(scenario: DecisionScenario): DecisionScenario {
 
 function slugify(value: string): string {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-}
-
-function downloadText(filename: string, content: string, mimeType: string): void {
-  const blob = new Blob([content], { type: mimeType });
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = filename;
-  anchor.click();
-  URL.revokeObjectURL(url);
 }
 
 function rankLookup(ranking: ReturnType<typeof analyzeScenario>["ranking"]): Record<string, number> {
@@ -382,9 +379,9 @@ export default function App() {
     }));
   }
 
-  function handleLoadDemo(demo: DecisionScenario) {
-    setScenario(cloneScenario(demo));
-    setSelectedCandidateId(demo.candidates[0]?.id ?? null);
+  function handleLoadDemo(demo: (typeof DEMOS)[number]) {
+    setScenario(cloneScenario(demo.scenario));
+    setSelectedCandidateId(demo.scenario.candidates[0]?.id ?? null);
     setWeightOverrides({});
     setAnalysisTab("ranked");
     setGuidedDemoStepIndex(null);
@@ -398,11 +395,7 @@ export default function App() {
   }
 
   function handleExportJson() {
-    downloadText(
-      `${slugify(scenario.name || "tradeoff-lens")}.json`,
-      JSON.stringify(scenario, null, 2),
-      "application/json"
-    );
+    exportScenarioJson(`${slugify(scenario.name || "tradeoff-lens")}.json`, scenario);
   }
 
   function handleExportMarkdown() {
@@ -413,27 +406,21 @@ export default function App() {
     );
   }
 
-  function handleImportFile(file: File | null) {
+  async function handleImportFile(file: File | null) {
     if (!file) {
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      try {
-        const parsed = JSON.parse(String(reader.result)) as
-          | DecisionScenario
-          | { scenario: DecisionScenario };
-        const nextScenario = cloneScenario("scenario" in parsed ? parsed.scenario : parsed);
-        setScenario(nextScenario);
-        setSelectedCandidateId(nextScenario.candidates[0]?.id ?? null);
-        setWeightOverrides({});
-        setGuidedDemoStepIndex(null);
-      } catch (error) {
-        window.alert("That file does not look like a Tradeoff Lens scenario JSON export.");
-      }
-    };
-    reader.readAsText(file);
+    try {
+      const parsed = await readJsonFile<DecisionScenario | { scenario: DecisionScenario }>(file);
+      const nextScenario = cloneScenario(unwrapScenarioEnvelope(parsed));
+      setScenario(nextScenario);
+      setSelectedCandidateId(nextScenario.candidates[0]?.id ?? null);
+      setWeightOverrides({});
+      setGuidedDemoStepIndex(null);
+    } catch (error) {
+      window.alert("That file does not look like a Tradeoff Lens scenario JSON export.");
+    }
   }
 
   const selectedCandidate = scenario.candidates.find(
@@ -443,7 +430,7 @@ export default function App() {
   const baseRankLookup = rankLookup(baseAnalysis.ranking);
 
   function handleStartGuidedDemo() {
-    const demo = DEMOS.find((entry) => entry.name === GUIDED_DEMO_NAME);
+    const demo = DEMOS.find((entry) => entry.id === GUIDED_DEMO_ID);
 
     if (!demo) {
       return;
@@ -538,7 +525,7 @@ export default function App() {
               className="button button-secondary"
               onClick={() => handleLoadDemo(demo)}
             >
-              {demo.name}
+              {demo.label}
             </button>
           ))}
         </div>

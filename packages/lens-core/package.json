@@ -1,0 +1,9 @@
+{
+  "name": "lens-core",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "peerDependencies": {
+    "react": "^18.0.0"
+  }
+}

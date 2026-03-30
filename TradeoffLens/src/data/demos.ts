@@ -1,5 +1,6 @@
 import { createCandidate, createId, createScenarioFromSeed } from "../domain/helpers";
 import type { DecisionScenario, EnumOption } from "../domain/types";
+import type { LensDemoScenario } from "../../../packages/lens-core/src/demos";
 
 function enumOptions(labelsAndScores: Array<[string, number]>): EnumOption[] {
   return labelsAndScores.map(([label, score]) => ({
@@ -19,7 +20,7 @@ function enumValueId(options: EnumOption[], label: string): string {
   return option.id;
 }
 
-export function buildDemoScenarios(): DecisionScenario[] {
+export function buildDemoScenarios(): LensDemoScenario<DecisionScenario>[] {
   const carRange = createCandidate("Honda CR-V Hybrid");
   carRange.notes = "Solid all-rounder with practical cargo space.";
   const carEv = createCandidate("Tesla Model 3");
@@ -203,7 +204,7 @@ export function buildDemoScenarios(): DecisionScenario[] {
   toolJetBrains.values[toolOfflineId] = true;
   toolJetBrains.values[toolTeamFitId] = 84;
 
-  return [
+  const scenarios = [
     createScenarioFromSeed({
       name: "Choosing a car",
       description:
@@ -438,4 +439,11 @@ export function buildDemoScenarios(): DecisionScenario[] {
       ],
     }),
   ];
+
+  return scenarios.map((scenario) => ({
+    id: scenario.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, ""),
+    label: scenario.name,
+    description: scenario.description,
+    scenario,
+  }));
 }
