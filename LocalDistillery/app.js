@@ -474,15 +474,143 @@ local-only processing`;
       const list = document.createElement("ul");
       (value.length ? value : ["None detected"]).forEach(function (item) {
         const li = document.createElement("li");
-        li.textContent = item;
+        li.append(renderMarkdownFragment(item));
         list.append(li);
       });
       return list;
     }
 
-    const pre = document.createElement("pre");
-    pre.textContent = value || "None detected";
-    return pre;
+    const container = document.createElement("div");
+    container.className = "markdown-fragment";
+    container.append(renderMarkdownFragment(value || "None detected"));
+    return container;
+  }
+
+  function renderMarkdownFragment(text) {
+    const fragment = document.createDocumentFragment();
+    const normalized = String(text || "").replace(/\r\n/g, "\n");
+    const lines = normalized.split("\n");
+    let index = 0;
+
+    while (index < lines.length) {
+      const line = lines[index];
+      const trimmed = line.trim();
+
+      if (!trimmed) {
+        index += 1;
+        continue;
+      }
+
+      const fenceMatch = trimmed.match(/^```(.*)$/);
+      if (fenceMatch) {
+        const block = [];
+        index += 1;
+        while (index < lines.length && !lines[index].trim().startsWith("```")) {
+          block.push(lines[index]);
+          index += 1;
+        }
+        if (index < lines.length) index += 1;
+        const pre = document.createElement("pre");
+        const code = document.createElement("code");
+        code.textContent = block.join("\n");
+        pre.append(code);
+        fragment.append(pre);
+        continue;
+      }
+
+      const headingMatch = trimmed.match(/^(#{1,6})\s+(.*)$/);
+      if (headingMatch) {
+        const level = Math.min(6, headingMatch[1].length + 1);
+        const heading = document.createElement("h" + level);
+        appendInlineMarkdown(heading, headingMatch[2]);
+        fragment.append(heading);
+        index += 1;
+        continue;
+      }
+
+      if (/^[-*]\s+/.test(trimmed)) {
+        const ul = document.createElement("ul");
+        while (index < lines.length && /^[-*]\s+/.test(lines[index].trim())) {
+          const li = document.createElement("li");
+          appendInlineMarkdown(li, lines[index].trim().replace(/^[-*]\s+/, ""));
+          ul.append(li);
+          index += 1;
+        }
+        fragment.append(ul);
+        continue;
+      }
+
+      if (/^\d+\.\s+/.test(trimmed)) {
+        const ol = document.createElement("ol");
+        while (index < lines.length && /^\d+\.\s+/.test(lines[index].trim())) {
+          const li = document.createElement("li");
+          appendInlineMarkdown(li, lines[index].trim().replace(/^\d+\.\s+/, ""));
+          ol.append(li);
+          index += 1;
+        }
+        fragment.append(ol);
+        continue;
+      }
+
+      const paragraphLines = [];
+      while (index < lines.length) {
+        const current = lines[index].trim();
+        if (!current) break;
+        if (/^(#{1,6})\s+/.test(current) || /^[-*]\s+/.test(current) || /^\d+\.\s+/.test(current) || /^```/.test(current)) break;
+        paragraphLines.push(current);
+        index += 1;
+      }
+      const paragraph = document.createElement("p");
+      appendInlineMarkdown(paragraph, paragraphLines.join(" "));
+      fragment.append(paragraph);
+    }
+
+    return fragment;
+  }
+
+  function appendInlineMarkdown(parent, text) {
+    const pattern = /(\[[^\]]+\]\([^\)]+\)|`[^`]+`|\*\*[^*]+\*\*|__[^_]+__|\*[^*]+\*|_[^_]+_)/g;
+    let lastIndex = 0;
+    let match;
+
+    while ((match = pattern.exec(text)) !== null) {
+      if (match.index > lastIndex) {
+        parent.append(document.createTextNode(text.slice(lastIndex, match.index)));
+      }
+
+      const token = match[0];
+      if (token[0] === "`") {
+        const code = document.createElement("code");
+        code.textContent = token.slice(1, -1);
+        parent.append(code);
+      } else if (token[0] === "[") {
+        const linkMatch = token.match(/^\[([^\]]+)\]\(([^\)]+)\)$/);
+        if (linkMatch) {
+          const anchor = document.createElement("a");
+          anchor.textContent = linkMatch[1];
+          anchor.href = linkMatch[2];
+          anchor.target = "_blank";
+          anchor.rel = "noreferrer noopener";
+          parent.append(anchor);
+        } else {
+          parent.append(document.createTextNode(token));
+        }
+      } else if (token.startsWith("**") || token.startsWith("__")) {
+        const strong = document.createElement("strong");
+        strong.textContent = token.slice(2, -2);
+        parent.append(strong);
+      } else {
+        const em = document.createElement("em");
+        em.textContent = token.slice(1, -1);
+        parent.append(em);
+      }
+
+      lastIndex = pattern.lastIndex;
+    }
+
+    if (lastIndex < text.length) {
+      parent.append(document.createTextNode(text.slice(lastIndex)));
+    }
   }
 
   function syncFormToState() {
