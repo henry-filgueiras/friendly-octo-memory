@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Local Distillery Storyboard</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f4efe4;
+        --panel: rgba(255, 252, 244, 0.94);
+        --line: rgba(85, 60, 26, 0.14);
+        --text: #20160a;
+        --muted: #715f4a;
+        --accent: #a34c21;
+        --accent-soft: rgba(163, 76, 33, 0.1);
+        --sage: rgba(107, 132, 82, 0.16);
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        font-family: "Avenir Next", "Segoe UI", sans-serif;
+        color: var(--text);
+        background:
+          radial-gradient(circle at top left, rgba(255, 255, 255, 0.85), transparent 32%),
+          radial-gradient(circle at top right, rgba(163, 76, 33, 0.12), transparent 26%),
+          linear-gradient(180deg, #efe6d5 0%, var(--bg) 48%, #e6dcc8 100%);
+      }
+
+      .page {
+        width: 1760px;
+        margin: 0 auto;
+        padding: 42px;
+      }
+
+      .hero {
+        display: grid;
+        grid-template-columns: 1.45fr 0.8fr;
+        gap: 24px;
+        margin-bottom: 26px;
+      }
+
+      .card,
+      .panel {
+        border: 1px solid var(--line);
+        border-radius: 28px;
+        background: var(--panel);
+        box-shadow: 0 20px 54px rgba(46, 28, 7, 0.1);
+      }
+
+      .card { padding: 28px 30px; }
+
+      .eyebrow {
+        margin: 0 0 10px;
+        color: var(--accent);
+        text-transform: uppercase;
+        letter-spacing: 0.15em;
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      h1, h2, h3, p { margin-top: 0; }
+
+      h1 {
+        font-size: 54px;
+        line-height: 1;
+        letter-spacing: -0.04em;
+        margin-bottom: 16px;
+      }
+
+      .hero-copy {
+        color: var(--muted);
+        font-size: 20px;
+        line-height: 1.55;
+        max-width: 860px;
+      }
+
+      .pill-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .pill,
+      .callout {
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.72);
+      }
+
+      .pill {
+        padding: 8px 12px;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .mini-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .mini-item {
+        display: grid;
+        grid-template-columns: 30px 1fr;
+        gap: 12px;
+        align-items: start;
+        color: var(--muted);
+        line-height: 1.5;
+      }
+
+      .mini-item strong {
+        display: block;
+        color: var(--text);
+        margin-bottom: 2px;
+      }
+
+      .num {
+        width: 30px;
+        height: 30px;
+        display: grid;
+        place-items: center;
+        border-radius: 50%;
+        background: var(--accent);
+        color: white;
+        font-weight: 700;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 24px;
+      }
+
+      .panel.full { grid-column: 1 / -1; }
+
+      .panel-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 18px;
+        padding: 22px 24px 16px;
+      }
+
+      .panel-head h3 {
+        margin-bottom: 6px;
+        font-size: 28px;
+      }
+
+      .panel-head p {
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.5;
+      }
+
+      .frame {
+        position: relative;
+        margin: 0 18px 18px;
+        border-radius: 20px;
+        overflow: hidden;
+        border: 1px solid rgba(85, 60, 26, 0.1);
+        background: #faf5eb;
+      }
+
+      .frame img {
+        width: 100%;
+        display: block;
+      }
+
+      .crop-hero { height: 460px; }
+      .crop-hero img { height: 100%; object-fit: cover; object-position: top center; }
+      .crop-mid { height: 420px; }
+      .crop-mid img { height: 100%; object-fit: cover; object-position: top center; }
+      .crop-bottom { height: 420px; }
+      .crop-bottom img { height: 100%; object-fit: cover; object-position: center bottom; }
+
+      .callout {
+        position: absolute;
+        max-width: 270px;
+        padding: 10px 12px;
+        font-size: 14px;
+        line-height: 1.4;
+        color: var(--text);
+        backdrop-filter: blur(10px);
+      }
+
+      .callout strong {
+        display: block;
+        margin-bottom: 2px;
+      }
+
+      .callout.accent { background: rgba(163, 76, 33, 0.16); }
+      .callout.sage { background: var(--sage); }
+
+      .footer {
+        margin-top: 24px;
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        color: var(--muted);
+        font-size: 15px;
+      }
+
+      .footer strong { color: var(--text); }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <section class="hero">
+        <div class="card">
+          <p class="eyebrow">Annotated storyboard</p>
+          <h1>Local Distillery turns pasted text into a usable artifact fast.</h1>
+          <p class="hero-copy">
+            The product works best when you understand the shape of the output
+            immediately: not “an analyzer,” but a local distillation surface for
+            turning raw material into a summary, digest, actions, questions,
+            motifs, concepts, and an exportable result.
+          </p>
+          <div class="pill-row">
+            <span class="pill">Static browser app</span>
+            <span class="pill">No backend</span>
+            <span class="pill">No telemetry</span>
+            <span class="pill">Deterministic heuristics</span>
+            <span class="pill">Markdown + JSON export</span>
+          </div>
+        </div>
+        <aside class="card">
+          <p class="eyebrow">How to read it</p>
+          <h2>Four quick moves</h2>
+          <div class="mini-list">
+            <div class="mini-item">
+              <div class="num">1</div>
+              <div><strong>Start empty</strong>The interface accepts paste, drag-and-drop, or a demo sample.</div>
+            </div>
+            <div class="mini-item">
+              <div class="num">2</div>
+              <div><strong>See the transformation</strong>One input becomes multiple useful sections in one pass.</div>
+            </div>
+            <div class="mini-item">
+              <div class="num">3</div>
+              <div><strong>Trim the artifact</strong>Section toggles let you keep only the output you want.</div>
+            </div>
+            <div class="mini-item">
+              <div class="num">4</div>
+              <div><strong>Export or copy</strong>The result is meant to become a downstream artifact, not stay trapped in the UI.</div>
+            </div>
+          </div>
+        </aside>
+      </section>
+
+      <section class="grid">
+        <article class="panel full">
+          <div class="panel-head">
+            <div>
+              <p class="eyebrow">Step 1</p>
+              <h3>The empty state now explains the payoff before asking for input.</h3>
+              <p>The old experience felt more like a blank utility. The improved first screen makes the demo path and the output shape much clearer.</p>
+            </div>
+          </div>
+          <div class="frame crop-hero">
+            <img src="./raw/01-empty-start.png" alt="Local Distillery empty start" />
+            <div class="callout accent" style="left: 28px; top: 24px;">
+              <strong>Clear promise</strong>
+              The product tells you what it does and what it does not do before you touch anything.
+            </div>
+            <div class="callout sage" style="left: 42px; bottom: 26px;">
+              <strong>Guided first move</strong>
+              A demo-first empty state reduces the “what am I supposed to paste here?” feeling.
+            </div>
+          </div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-head">
+            <div>
+              <p class="eyebrow">Step 2</p>
+              <h3>One source becomes a multi-part artifact.</h3>
+              <p>The key value is visible transformation: summary, digest, actions, questions, patterns, concepts, and graph.</p>
+            </div>
+          </div>
+          <div class="frame crop-mid">
+            <img src="./raw/02-demo-overview.png" alt="Local Distillery demo overview" />
+            <div class="callout accent" style="right: 24px; top: 24px;">
+              <strong>Immediate output</strong>
+              The right pane proves the product quickly instead of asking users to imagine the result.
+            </div>
+          </div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-head">
+            <div>
+              <p class="eyebrow">Step 3</p>
+              <h3>The output is meant to be handled section-by-section.</h3>
+              <p>Copy buttons, section toggles, and export controls make the artifact portable instead of ornamental.</p>
+            </div>
+          </div>
+          <div class="frame crop-mid">
+            <img src="./raw/02-demo-overview.png" alt="Local Distillery artifact controls" />
+            <div class="callout sage" style="right: 26px; bottom: 26px;">
+              <strong>Practical artifact</strong>
+              This is less about “analysis for its own sake” and more about getting something reusable out of a messy input.
+            </div>
+          </div>
+        </article>
+
+        <article class="panel full">
+          <div class="panel-head">
+            <div>
+              <p class="eyebrow">Step 4</p>
+              <h3>The concept graph makes the heuristics feel inspectable, not magical.</h3>
+              <p>It is a small thing, but showing graph structure and Mermaid source helps the app read as explainable local tooling rather than a mystery box.</p>
+            </div>
+          </div>
+          <div class="frame crop-bottom">
+            <img src="./raw/02-demo-overview.png" alt="Local Distillery concept graph" />
+            <div class="callout accent" style="right: 26px; bottom: 26px;">
+              <strong>Explainable structure</strong>
+              The graph and source view signal how the tool thinks without pretending it is doing hidden semantic magic.
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <footer class="footer">
+        <div><strong>Takeaway:</strong> LocalDistillery felt clunky mostly because its output value was under-demonstrated, not because the core idea was weak.</div>
+        <div>Built from real local screenshots of the app.</div>
+      </footer>
+    </div>
+  </body>
+</html>

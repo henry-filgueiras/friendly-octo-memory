@@ -66,14 +66,26 @@ More detail lives in `TradeoffLens/README.md`.
 
 ### Local Distillery
 
-Local Distillery is a second local-first browser tool in this repo. It focuses on text distillation rather than decision analysis.
+Local Distillery is the repo's second product: a local-only text distiller for turning rough notes, transcripts, specs, logs, and research into a compact working artifact.
 
-- Direct entry: `LocalDistillery/index.html`
-- Docs: `LocalDistillery/README.md`
+- Local-only browser app
+- Deterministic heuristics, not opaque summarization
+- Outputs summary, digest, actions, questions, motifs, concepts, and graph
+
+![Local Distillery storyboard](LocalDistillery/storyboard/local-distillery-storyboard.png)
+
+Quick start:
+
+```bash
+make local-distillery-serve
+```
+
+More detail lives in `LocalDistillery/README.md`.
 
 ## Repo map
 
 - `TradeoffLens`: main decision-analysis app
 - `TradeoffLens/storyboard/tradeoff-lens-storyboard.png`: product walkthrough graphic
 - `LocalDistillery`: secondary text-distillation app
-- `Makefile`: repo-root shortcuts for running Tradeoff Lens
+- `LocalDistillery/storyboard/local-distillery-storyboard.png`: Local Distillery walkthrough graphic
+- `Makefile`: repo-root shortcuts for both apps
