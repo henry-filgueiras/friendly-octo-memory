@@ -11,6 +11,8 @@ import {
   executionPlanToClaimSetTransform,
   exportScenarioJson,
   getLensArtifactDefinition,
+  getLensRecipe,
+  getLensTransformById,
   loadLocalScenario,
   saveLocalScenario,
   unwrapScenarioEnvelope,
@@ -182,6 +184,10 @@ describe("lens-core", () => {
   });
 
   it("claimSetToEvidenceMapSeedTransform seeds an empty evidence map and carries provenance forward", () => {
+    const inputClaims = [
+      { id: "claim-1", statement: "The launch date is viable", category: "schedule" },
+      { id: "claim-2", statement: "Support load is manageable", notes: "Needs validation." },
+    ];
     const evidenceMap = claimSetToEvidenceMapSeedTransform.run(
       {
         id: "artifact-claims",
@@ -191,7 +197,7 @@ describe("lens-core", () => {
         createdAt: "2026-03-30T00:00:00.000Z",
         payload: {
           subject: "Launch claims",
-          claims: [{ id: "claim-1", statement: "The launch date is viable", category: "schedule" }],
+          claims: inputClaims,
         },
         provenance: {
           producedBy: { app: "Threadline" },
@@ -207,12 +213,13 @@ describe("lens-core", () => {
     );
 
     expect(evidenceMap.kind).toBe("EvidenceMap");
-    expect(evidenceMap.payload.claims).toHaveLength(1);
-    expect(evidenceMap.payload.claims[0]?.statement).toBe("The launch date is viable");
+    expect(evidenceMap.payload.claims).toEqual(inputClaims);
     expect(evidenceMap.payload.sources).toEqual([]);
     expect(evidenceMap.payload.links).toEqual([]);
+    expect(evidenceMap.provenance.producedBy.app).toBe("EvidenceLedger");
     expect(evidenceMap.provenance.producedBy.transformId).toBe("claim-set-to-evidence-map-seed");
     expect(evidenceMap.provenance.sourceArtifacts[0]?.id).toBe("artifact-claims");
+    expect(evidenceMap.provenance.sourceArtifacts[0]?.title).toBe("Launch claims");
     expect(evidenceMap.provenance.sourceScenario?.app).toBe("Threadline");
   });
 
@@ -310,8 +317,46 @@ describe("lens-core", () => {
     ]);
     expect(claimSet.payload.claims.some((claim) => claim.id === "claim-ordinary")).toBe(false);
     expect(claimSet.payload.claims.some((claim) => claim.id === "claim-done")).toBe(false);
+    expect(claimSet.provenance.producedBy.app).toBe("lens-workbench");
     expect(claimSet.provenance.producedBy.transformId).toBe("execution-plan-to-claim-set");
     expect(claimSet.provenance.sourceArtifacts[0]?.id).toBe("artifact-plan");
+    expect(claimSet.provenance.sourceArtifacts[0]?.title).toBe("Launch execution plan");
     expect(claimSet.provenance.sourceScenario?.app).toBe("Threadline");
+  });
+
+  it("looks up the named recipe and resolves valid transform ids in order", () => {
+    const recipe = getLensRecipe("threadline-plan-pressure-to-evidence-map");
+
+    expect(recipe).toBeDefined();
+    expect(recipe?.label).toBe("Plan pressure to evidence seed");
+    expect(recipe?.startKind).toBe("ExecutionPlan");
+    expect(recipe?.targetKind).toBe("EvidenceMap");
+
+    expect(recipe).toBeDefined();
+
+    const transforms = recipe!.transformIds.map((transformId) => getLensTransformById(transformId));
+
+    expect(transforms).toHaveLength(2);
+    expect(transforms[0]?.id).toBe("execution-plan-to-claim-set");
+    expect(transforms[1]?.id).toBe("claim-set-to-evidence-map-seed");
+    expect(transforms.every(Boolean)).toBe(true);
+  });
+
+  it("supports the current recipe chain from ExecutionPlan to EvidenceMap", () => {
+    const recipe = getLensRecipe("threadline-plan-pressure-to-evidence-map");
+
+    expect(recipe).toBeDefined();
+
+    let currentKind = recipe!.startKind;
+
+    for (const transformId of recipe!.transformIds) {
+      const transform = getLensTransformById(transformId);
+
+      expect(transform).toBeDefined();
+      expect(transform?.inputKind).toBe(currentKind);
+      currentKind = transform!.outputKind;
+    }
+
+    expect(currentKind).toBe(recipe!.targetKind);
   });
 });
