@@ -1,10 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import type {
-  LensArtifactEnvelope,
-  LensArtifactKind,
-  LensRecipe,
-  LensTransform,
-} from "lens-core";
+import { useMemo, useRef, useState } from "react";
+import type { LensArtifactKind, LensRecipe, LensTransform } from "lens-core";
 import {
   LensHero,
   LensPanel,
@@ -22,115 +17,20 @@ import {
   lensTransforms,
   readJsonFile,
 } from "lens-core";
-
-type WorkbenchArtifact = {
-  [K in LensArtifactKind]: LensArtifactEnvelope<K>;
-}[LensArtifactKind];
-
-const SAMPLE_EXECUTION_PLAN_ARTIFACT: LensArtifactEnvelope<"ExecutionPlan"> = {
-  id: "artifact-threadline-launch-plan",
-  kind: "ExecutionPlan",
-  schemaVersion: 1,
-  title: "Launch a private beta execution plan",
-  createdAt: "2026-03-30T00:00:00.000Z",
-  payload: {
-    subject: "Launch a private beta",
-    deadlineDay: 22,
-    projectFinishDay: 20,
-    deadlineMissDays: 0,
-    tasks: [
-      {
-        id: "billing",
-        name: "Build billing guardrails",
-        status: "todo",
-        notes: "Prevent accidental paid-plan flows during beta.",
-        critical: true,
-        constraintIssues: [],
-      },
-      {
-        id: "qa",
-        name: "Run beta dry run",
-        status: "todo",
-        notes: "Walk the signup, invite, and support handoff path end-to-end.",
-        critical: true,
-        constraintIssues: [
-          "Run beta dry run needs to finish by day 18 but currently lands on day 19.",
-        ],
-      },
-      {
-        id: "copy",
-        name: "Write launch copy",
-        status: "todo",
-        notes: "Landing page headline, invite email, beta FAQ.",
-        critical: false,
-        constraintIssues: [],
-      },
-      {
-        id: "scope",
-        name: "Lock beta scope",
-        status: "done",
-        notes: "Decide what is in and out before downstream teams sprint.",
-        critical: true,
-        constraintIssues: [],
-      },
-    ],
-  },
-  provenance: {
-    producedBy: {
-      app: "Threadline",
-    },
-    sourceArtifacts: [],
-    sourceScenario: {
-      app: "Threadline",
-      scenarioId: "demo-launch",
-      scenarioName: "Launch a private beta",
-    },
-  },
-};
-
-const SAMPLE_CLAIM_SET_ARTIFACT: LensArtifactEnvelope<"ClaimSet"> = {
-  id: "artifact-launch-pressure-claims",
-  kind: "ClaimSet",
-  schemaVersion: 1,
-  title: "Launch pressure claims",
-  createdAt: "2026-03-30T00:10:00.000Z",
-  payload: {
-    subject: "Launch a private beta",
-    claims: [
-      {
-        id: "claim-billing",
-        statement: "Build billing guardrails is schedule-critical for delivering Launch a private beta.",
-        category: "Critical path",
-        notes: "Prevent accidental paid-plan flows during beta.",
-      },
-      {
-        id: "claim-qa",
-        statement:
-          "Run beta dry run is a schedule-critical task with explicit deadline pressure in the current plan for Launch a private beta.",
-        category: "Critical deadline pressure",
-        notes: "Walk the signup, invite, and support handoff path end-to-end.",
-      },
-    ],
-  },
-  provenance: {
-    producedBy: {
-      app: "lens-workbench",
-      transformId: "execution-plan-to-claim-set",
-    },
-    sourceArtifacts: [
-      {
-        id: SAMPLE_EXECUTION_PLAN_ARTIFACT.id,
-        kind: SAMPLE_EXECUTION_PLAN_ARTIFACT.kind,
-        title: SAMPLE_EXECUTION_PLAN_ARTIFACT.title,
-      },
-    ],
-    sourceScenario: {
-      app: "Threadline",
-      scenarioId: "demo-launch",
-      scenarioName: "Launch a private beta",
-    },
-  },
-};
+import {
+  appendArtifactLabRunEvent,
+  createArtifactLabRunJournal,
+  formatArtifactLabRunEvent,
+  getRecipeTransforms,
+  type ArtifactLabRunEventInput,
+  isArtifactLabRunJournal,
+  replayArtifactLabRunJournal,
+} from "./runJournal";
+import {
+  SAMPLE_CLAIM_SET_ARTIFACT,
+  SAMPLE_EXECUTION_PLAN_ARTIFACT,
+  type WorkbenchArtifact,
+} from "./sampleArtifacts";
 
 function summarizeArtifactPayload(artifact: WorkbenchArtifact): string[] {
   switch (artifact.kind) {
@@ -270,47 +170,62 @@ function formatRecipeChain(recipe: LensRecipe): string {
   return parts.join(" -> ");
 }
 
+function formatEventTime(timestamp: string) {
+  return new Date(timestamp).toLocaleTimeString([], {
+    hour: "numeric",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+}
+
 export default function App() {
-  const importRef = useRef<HTMLInputElement | null>(null);
-  const [currentArtifact, setCurrentArtifact] = useState<WorkbenchArtifact>(
-    SAMPLE_EXECUTION_PLAN_ARTIFACT
+  const artifactImportRef = useRef<HTMLInputElement | null>(null);
+  const journalImportRef = useRef<HTMLInputElement | null>(null);
+  const [runJournal, setRunJournal] = useState(() =>
+    createArtifactLabRunJournal(SAMPLE_EXECUTION_PLAN_ARTIFACT)
   );
-  const [derivedArtifact, setDerivedArtifact] = useState<WorkbenchArtifact | null>(null);
   const [targetArtifactKind, setTargetArtifactKind] = useState<LensArtifactKind | "">("");
-  const [activeRecipeId, setActiveRecipeId] = useState<string | null>(null);
-  const [completedRecipeSteps, setCompletedRecipeSteps] = useState(0);
-  const compatibleTransforms = useMemo(
-    () => getCompatibleLensTransforms(currentArtifact.kind),
-    [currentArtifact.kind]
-  );
-  const [selectedTransformId, setSelectedTransformId] = useState<string | null>(
-    compatibleTransforms[0]?.id ?? null
-  );
-  const selectedTransform = compatibleTransforms.find(
-    (transform) => transform.id === selectedTransformId
-  );
-  const targetPath = useMemo(
-    () => (targetArtifactKind ? findTransformPath(currentArtifact.kind, targetArtifactKind) : null),
-    [currentArtifact.kind, targetArtifactKind]
-  );
+  const projected = useMemo(() => replayArtifactLabRunJournal(runJournal), [runJournal]);
+  const currentArtifact = projected.currentArtifact;
+  const derivedArtifact = projected.derivedArtifact;
   const activeRecipe = useMemo(
-    () => (activeRecipeId ? getLensRecipe(activeRecipeId) ?? null : null),
-    [activeRecipeId]
+    () => (projected.activeRecipeId ? getLensRecipe(projected.activeRecipeId) ?? null : null),
+    [projected.activeRecipeId]
   );
   const activeRecipeTransforms = useMemo(
-    () =>
-      activeRecipe
-        ? activeRecipe.transformIds
-            .map((transformId) => getLensTransformById(transformId))
-            .filter((transform): transform is LensTransform<LensArtifactKind, LensArtifactKind> =>
-              Boolean(transform)
-            )
-        : [],
+    () => getRecipeTransforms(activeRecipe),
     [activeRecipe]
   );
-  const currentRecipeStep = activeRecipeTransforms[completedRecipeSteps];
-  const currentRecipeHint = activeRecipe?.stepHints?.[completedRecipeSteps];
-  const remainingRecipeTransforms = activeRecipeTransforms.slice(completedRecipeSteps);
+  const currentRecipeStep = activeRecipeTransforms[projected.completedRecipeSteps];
+  const currentRecipeHint = activeRecipe?.stepHints?.[projected.completedRecipeSteps];
+  const remainingRecipeTransforms = activeRecipeTransforms.slice(projected.completedRecipeSteps);
+  const transcriptEntries = useMemo(
+    () => runJournal.events.map(formatArtifactLabRunEvent),
+    [runJournal]
+  );
+
+  if (!currentArtifact) {
+    return (
+      <LensShell>
+        <LensPanel>
+          <p className={lensShellClasses.eyebrow}>Artifact operator bench</p>
+          <h1>Artifact Lab</h1>
+          <p className="workbench-note">
+            This run journal does not replay to a current artifact. Load a valid run journal or
+            start a new session from a sample artifact.
+          </p>
+        </LensPanel>
+      </LensShell>
+    );
+  }
+
+  const compatibleTransforms = getCompatibleLensTransforms(currentArtifact.kind);
+  const selectedTransform = compatibleTransforms.find(
+    (transform) => transform.id === projected.selectedTransformId
+  );
+  const targetPath = targetArtifactKind
+    ? findTransformPath(currentArtifact.kind, targetArtifactKind)
+    : null;
   const recipeStepMatchesCurrentArtifact = Boolean(
     currentRecipeStep && currentArtifact.kind === currentRecipeStep.inputKind
   );
@@ -321,19 +236,19 @@ export default function App() {
       currentArtifact.kind !== currentRecipeStep.inputKind
   );
 
-  useEffect(() => {
-    setDerivedArtifact(null);
-  }, [currentArtifact]);
+  function appendEvent(input: ArtifactLabRunEventInput, at = new Date().toISOString()) {
+    setRunJournal((journal) => appendArtifactLabRunEvent(journal, input, at));
+  }
 
-  useEffect(() => {
-    if (currentRecipeStep && currentArtifact.kind === currentRecipeStep.inputKind) {
-      setSelectedTransformId(currentRecipeStep.id);
-    } else {
-      setSelectedTransformId(compatibleTransforms[0]?.id ?? null);
-    }
-  }, [currentArtifact, compatibleTransforms, currentRecipeStep]);
+  function handleLoadArtifact(artifact: WorkbenchArtifact, source: "sample" | "manual" = "sample") {
+    appendEvent({
+      type: "artifact-loaded",
+      artifact,
+      source,
+    });
+  }
 
-  async function handleImport(file: File | null) {
+  async function handleArtifactImport(file: File | null) {
     if (!file) {
       return;
     }
@@ -345,18 +260,61 @@ export default function App() {
       return;
     }
 
-    setCurrentArtifact(parsed as WorkbenchArtifact);
+    appendEvent({
+      type: "artifact-imported",
+      artifact: parsed as WorkbenchArtifact,
+      filename: file.name,
+    });
+  }
+
+  async function handleJournalImport(file: File | null) {
+    if (!file) {
+      return;
+    }
+
+    const parsed = await readJsonFile<unknown>(file);
+
+    if (!isArtifactLabRunJournal(parsed)) {
+      window.alert("That file is not an Artifact Lab run journal.");
+      return;
+    }
+
+    const replayed = replayArtifactLabRunJournal(parsed);
+
+    if (!replayed.currentArtifact) {
+      window.alert("That run journal does not replay to a current artifact.");
+      return;
+    }
+
+    setRunJournal(parsed);
+
+    if (replayed.activeRecipeId) {
+      const recipe = getLensRecipe(replayed.activeRecipeId);
+      setTargetArtifactKind(recipe?.targetKind ?? "");
+    } else {
+      setTargetArtifactKind("");
+    }
   }
 
   function handleActivateRecipe(recipe: LensRecipe) {
-    setActiveRecipeId(recipe.id);
-    setCompletedRecipeSteps(0);
+    appendEvent({
+      type: "recipe-activated",
+      recipeId: recipe.id,
+    });
     setTargetArtifactKind(recipe.targetKind);
   }
 
   function handleClearRecipe() {
-    setActiveRecipeId(null);
-    setCompletedRecipeSteps(0);
+    appendEvent({
+      type: "recipe-cleared",
+    });
+  }
+
+  function handleSelectTransform(transformId: string) {
+    appendEvent({
+      type: "transform-selected",
+      transformId,
+    });
   }
 
   function handleApplyTransform() {
@@ -369,18 +327,28 @@ export default function App() {
       artifactId: createArtifactId(selectedTransform.outputKind),
       createdAt: now,
       producedByApp: "lens-workbench",
-      title: buildDerivedArtifactTitle(currentArtifact, selectedTransform),
+      title: buildDerivedArtifactTitle(currentArtifact as WorkbenchArtifact, selectedTransform),
     } as never);
 
-    setDerivedArtifact(nextArtifact as WorkbenchArtifact);
+    appendEvent(
+      {
+        type: "transform-applied",
+        transformId: selectedTransform.id,
+        outputArtifact: nextArtifact as WorkbenchArtifact,
+      },
+      now
+    );
+  }
 
-    if (
-      currentRecipeStep &&
-      selectedTransform.id === currentRecipeStep.id &&
-      nextArtifact.kind === currentRecipeStep.outputKind
-    ) {
-      setCompletedRecipeSteps((value) => value + 1);
+  function handlePromoteDerivedArtifact() {
+    if (!derivedArtifact) {
+      return;
     }
+
+    appendEvent({
+      type: "derived-artifact-promoted",
+      artifact: derivedArtifact,
+    });
   }
 
   function handleUseNextStepFromTargetPath() {
@@ -388,7 +356,24 @@ export default function App() {
       return;
     }
 
-    setSelectedTransformId(targetPath[0].id);
+    handleSelectTransform(targetPath[0].id);
+  }
+
+  function handleExportArtifact(artifact: WorkbenchArtifact, source: "current" | "derived") {
+    const filename = `${artifact.kind}.artifact.json`;
+    exportScenarioJson(filename, artifact);
+    appendEvent({
+      type: "artifact-exported",
+      artifactId: artifact.id,
+      artifactKind: artifact.kind,
+      artifactTitle: artifact.title,
+      filename,
+      source,
+    });
+  }
+
+  function handleExportRunJournal() {
+    exportScenarioJson("artifact-lab.run-journal.json", runJournal);
   }
 
   return (
@@ -399,12 +384,13 @@ export default function App() {
           <h1>Artifact Lab</h1>
           <p className="workbench-lede">
             Load a typed artifact, inspect its provenance, apply one explicit transform, and
-            export the derived artifact. No runner, no hidden workflow state, no universal schema.
+            export the derived artifact. The run journal records what the human actually did, then
+            replays the session deterministically.
           </p>
           <div className={lensShellClasses.pillRow}>
             <span className={lensShellClasses.pill}>Manual transform lab</span>
-            <span className={lensShellClasses.pill}>Typed envelopes</span>
-            <span className={lensShellClasses.pill}>Explicit provenance</span>
+            <span className={lensShellClasses.pill}>Append-only journal</span>
+            <span className={lensShellClasses.pill}>Replayable session state</span>
           </div>
         </div>
         <div className={lensShellClasses.heroActions}>
@@ -418,7 +404,7 @@ export default function App() {
                     ? "workbench-button--active"
                     : ""
                 }`}
-                onClick={() => setCurrentArtifact(SAMPLE_EXECUTION_PLAN_ARTIFACT)}
+                onClick={() => handleLoadArtifact(SAMPLE_EXECUTION_PLAN_ARTIFACT)}
               >
                 <strong>Sample ExecutionPlan</strong>
                 <span>Demo the real Threadline to ClaimSet handoff path.</span>
@@ -430,7 +416,7 @@ export default function App() {
                     ? "workbench-button--active"
                     : ""
                 }`}
-                onClick={() => setCurrentArtifact(SAMPLE_CLAIM_SET_ARTIFACT)}
+                onClick={() => handleLoadArtifact(SAMPLE_CLAIM_SET_ARTIFACT)}
               >
                 <strong>Sample ClaimSet</strong>
                 <span>Continue the chain into an EvidenceMap seed artifact.</span>
@@ -438,19 +424,40 @@ export default function App() {
               <button
                 type="button"
                 className="workbench-button"
-                onClick={() => importRef.current?.click()}
+                onClick={() => artifactImportRef.current?.click()}
               >
                 <strong>Import artifact JSON</strong>
                 <span>Load a real exported artifact envelope from a lens app.</span>
               </button>
+              <button
+                type="button"
+                className="workbench-button workbench-button--subtle"
+                onClick={() => journalImportRef.current?.click()}
+              >
+                <strong>Import run journal JSON</strong>
+                <span>Replay a saved Artifact Lab session into the current state.</span>
+              </button>
               <input
-                ref={importRef}
+                ref={artifactImportRef}
                 type="file"
                 accept="application/json,.json"
                 hidden
                 onChange={async (event) => {
                   try {
-                    await handleImport(event.target.files?.[0] ?? null);
+                    await handleArtifactImport(event.target.files?.[0] ?? null);
+                  } finally {
+                    event.currentTarget.value = "";
+                  }
+                }}
+              />
+              <input
+                ref={journalImportRef}
+                type="file"
+                accept="application/json,.json"
+                hidden
+                onChange={async (event) => {
+                  try {
+                    await handleJournalImport(event.target.files?.[0] ?? null);
                   } finally {
                     event.currentTarget.value = "";
                   }
@@ -525,6 +532,15 @@ export default function App() {
                 ))}
               </ul>
             </div>
+
+            <button
+              type="button"
+              className="workbench-button"
+              onClick={() => handleExportArtifact(currentArtifact, "current")}
+            >
+              <strong>Export current artifact JSON</strong>
+              <span>Save the source artifact exactly as it exists in this session.</span>
+            </button>
           </div>
         </LensPanel>
 
@@ -595,9 +611,9 @@ export default function App() {
                   <div className="recipe-progress__summary">
                     <strong>{activeRecipe.label}</strong>
                     <span>
-                      {completedRecipeSteps >= activeRecipeTransforms.length
+                      {projected.completedRecipeSteps >= activeRecipeTransforms.length
                         ? "Recipe complete"
-                        : `Step ${completedRecipeSteps + 1} of ${activeRecipeTransforms.length}`}
+                        : `Step ${projected.completedRecipeSteps + 1} of ${activeRecipeTransforms.length}`}
                     </span>
                   </div>
 
@@ -608,7 +624,7 @@ export default function App() {
                         <div className="path-arrow">→</div>
                         <div
                           className={`path-chip path-chip--transform ${
-                            index < completedRecipeSteps ? "path-chip--complete" : ""
+                            index < projected.completedRecipeSteps ? "path-chip--complete" : ""
                           }`}
                         >
                           {transform.name}
@@ -616,7 +632,7 @@ export default function App() {
                         <div className="path-arrow">→</div>
                         <div
                           className={`path-chip ${
-                            index < completedRecipeSteps ? "path-chip--complete" : ""
+                            index < projected.completedRecipeSteps ? "path-chip--complete" : ""
                           }`}
                         >
                           {transform.outputKind}
@@ -808,9 +824,9 @@ export default function App() {
                   key={transform.id}
                   type="button"
                   className={`workbench-button ${
-                    transform.id === selectedTransformId ? "workbench-button--active" : ""
+                    transform.id === projected.selectedTransformId ? "workbench-button--active" : ""
                   }`}
-                  onClick={() => setSelectedTransformId(transform.id)}
+                  onClick={() => handleSelectTransform(transform.id)}
                 >
                   <strong>
                     {transform.inputKind} -&gt; {transform.outputKind}
@@ -839,7 +855,7 @@ export default function App() {
                   className={`workbench-button ${
                     recipeCanContinueWithDerivedArtifact ? "workbench-button--promote" : ""
                   }`}
-                  onClick={() => setCurrentArtifact(derivedArtifact)}
+                  onClick={handlePromoteDerivedArtifact}
                 >
                   <strong>
                     {recipeCanContinueWithDerivedArtifact
@@ -927,7 +943,7 @@ export default function App() {
                 <button
                   type="button"
                   className="workbench-button"
-                  onClick={() => exportScenarioJson(`${derivedArtifact.kind}.artifact.json`, derivedArtifact)}
+                  onClick={() => handleExportArtifact(derivedArtifact, "derived")}
                 >
                   <strong>Export derived artifact JSON</strong>
                   <span>Save the transformed artifact for import into the next lens.</span>
@@ -940,6 +956,61 @@ export default function App() {
                 </p>
               </div>
             )}
+          </div>
+        </LensPanel>
+
+        <LensPanel>
+          <div className={lensShellClasses.panelHeader}>
+            <div>
+              <p className={lensShellClasses.eyebrow}>Run Journal</p>
+              <h2>Session transcript</h2>
+            </div>
+            <LensStatGrid>
+              <div className={lensShellClasses.statCard}>
+                <span>Session</span>
+                <strong>{runJournal.sessionId}</strong>
+              </div>
+              <div className={lensShellClasses.statCard}>
+                <span>Events</span>
+                <strong>{runJournal.events.length}</strong>
+              </div>
+            </LensStatGrid>
+          </div>
+
+          <div className="workbench-stack">
+            <div className="workbench-actions transcript-actions">
+              <button
+                type="button"
+                className="workbench-button"
+                onClick={handleExportRunJournal}
+              >
+                <strong>Export run journal JSON</strong>
+                <span>Save the append-only session transcript for replay later.</span>
+              </button>
+              <button
+                type="button"
+                className="workbench-button workbench-button--subtle"
+                onClick={() => journalImportRef.current?.click()}
+              >
+                <strong>Load run journal JSON</strong>
+                <span>Replay a saved session into the current lab state.</span>
+              </button>
+            </div>
+
+            <ol className="transcript-list">
+              {transcriptEntries.map((entry, index) => (
+                <li key={entry.id} className="transcript-item">
+                  <div className="transcript-item__meta">
+                    <span>{index + 1}.</span>
+                    <time dateTime={entry.timestamp}>{formatEventTime(entry.timestamp)}</time>
+                  </div>
+                  <div className="transcript-item__body">
+                    <strong>{entry.title}</strong>
+                    <p>{entry.detail}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
           </div>
         </LensPanel>
       </main>
