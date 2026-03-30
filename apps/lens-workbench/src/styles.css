@@ -86,6 +86,11 @@ textarea {
   background: rgba(225, 132, 59, 0.12);
 }
 
+.workbench-button--subtle {
+  border-color: rgba(103, 184, 216, 0.3);
+  background: rgba(103, 184, 216, 0.08);
+}
+
 .workbench-field span {
   font-size: 0.88rem;
   color: rgba(238, 243, 247, 0.78);
