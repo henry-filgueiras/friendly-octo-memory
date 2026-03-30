@@ -20,7 +20,8 @@ body {
 
 button,
 input,
-textarea {
+textarea,
+select {
   font: inherit;
 }
 
@@ -30,7 +31,8 @@ button:disabled {
 }
 
 input,
-textarea {
+textarea,
+select {
   width: 100%;
   padding: 0.72rem 0.8rem;
   border-radius: 14px;
@@ -159,10 +161,51 @@ textarea {
   font-size: 1.15rem;
 }
 
+.path-strip {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.path-step {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.path-chip {
+  padding: 0.56rem 0.72rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(238, 243, 247, 0.88);
+  width: fit-content;
+}
+
+.path-chip--transform {
+  border-color: rgba(225, 132, 59, 0.42);
+  background: rgba(225, 132, 59, 0.12);
+}
+
+.path-arrow {
+  color: rgba(238, 243, 247, 0.68);
+  justify-self: start;
+}
+
 @media (min-width: 980px) {
   .lineage-strip {
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr);
     align-items: stretch;
+  }
+
+  .path-strip {
+    grid-auto-flow: column;
+    grid-auto-columns: max-content;
+    align-items: center;
+  }
+
+  .path-step {
+    grid-auto-flow: column;
+    grid-auto-columns: max-content;
+    align-items: center;
   }
 }
 

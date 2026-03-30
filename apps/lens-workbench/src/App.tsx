@@ -13,7 +13,9 @@ import {
   getCompatibleLensTransforms,
   getLensArtifactDefinition,
   isLensArtifactEnvelope,
+  lensArtifactRegistry,
   lensShellClasses,
+  lensTransforms,
   readJsonFile,
 } from "lens-core";
 
@@ -192,6 +194,46 @@ function createArtifactId(kind: LensArtifactKind): string {
   return `artifact-${kind.toLowerCase()}-${Date.now()}`;
 }
 
+function findTransformPath(
+  startKind: LensArtifactKind,
+  targetKind: LensArtifactKind
+): Array<LensTransform<LensArtifactKind, LensArtifactKind>> | null {
+  if (startKind === targetKind) {
+    return [];
+  }
+
+  const queue: Array<{
+    kind: LensArtifactKind;
+    path: Array<LensTransform<LensArtifactKind, LensArtifactKind>>;
+  }> = [{ kind: startKind, path: [] }];
+  const visited = new Set<LensArtifactKind>([startKind]);
+
+  while (queue.length > 0) {
+    const current = queue.shift() as {
+      kind: LensArtifactKind;
+      path: Array<LensTransform<LensArtifactKind, LensArtifactKind>>;
+    };
+
+    for (const transform of lensTransforms.filter((entry) => entry.inputKind === current.kind)) {
+      const nextPath = [...current.path, transform];
+
+      if (transform.outputKind === targetKind) {
+        return nextPath;
+      }
+
+      if (!visited.has(transform.outputKind)) {
+        visited.add(transform.outputKind);
+        queue.push({
+          kind: transform.outputKind,
+          path: nextPath,
+        });
+      }
+    }
+  }
+
+  return null;
+}
+
 function buildLineageLabel(
   transform: LensTransform<LensArtifactKind, LensArtifactKind> | undefined,
   derivedArtifact: WorkbenchArtifact | null
@@ -213,6 +255,7 @@ export default function App() {
     SAMPLE_EXECUTION_PLAN_ARTIFACT
   );
   const [derivedArtifact, setDerivedArtifact] = useState<WorkbenchArtifact | null>(null);
+  const [targetArtifactKind, setTargetArtifactKind] = useState<LensArtifactKind | "">("");
   const compatibleTransforms = useMemo(
     () => getCompatibleLensTransforms(currentArtifact.kind),
     [currentArtifact.kind]
@@ -222,6 +265,10 @@ export default function App() {
   );
   const selectedTransform = compatibleTransforms.find(
     (transform) => transform.id === selectedTransformId
+  );
+  const targetPath = useMemo(
+    () => (targetArtifactKind ? findTransformPath(currentArtifact.kind, targetArtifactKind) : null),
+    [currentArtifact.kind, targetArtifactKind]
   );
 
   useEffect(() => {
@@ -430,6 +477,57 @@ export default function App() {
                   <small>{derivedArtifact?.title ?? "Apply the transform to derive output"}</small>
                 </div>
               </div>
+            </div>
+
+            <div className="workbench-card">
+              <p className={lensShellClasses.eyebrow}>Path to target</p>
+              <label className="workbench-field">
+                <span>Optional target artifact kind</span>
+                <select
+                  value={targetArtifactKind}
+                  onChange={(event) =>
+                    setTargetArtifactKind(event.target.value as LensArtifactKind | "")
+                  }
+                >
+                  <option value="">No target selected</option>
+                  {lensArtifactRegistry.map((entry) => (
+                    <option key={entry.kind} value={entry.kind}>
+                      {entry.kind}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {targetArtifactKind ? (
+                targetPath ? (
+                  targetPath.length > 0 ? (
+                    <div className="path-strip" aria-label="Transform path to target artifact">
+                      <div className="path-chip">{currentArtifact.kind}</div>
+                      {targetPath.map((transform) => (
+                        <div key={transform.id} className="path-step">
+                          <div className="path-arrow">→</div>
+                          <div className="path-chip path-chip--transform">{transform.name}</div>
+                          <div className="path-arrow">→</div>
+                          <div className="path-chip">{transform.outputKind}</div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="workbench-note">
+                      The current artifact is already a <code>{targetArtifactKind}</code>.
+                    </p>
+                  )
+                ) : (
+                  <p className="workbench-note">
+                    No registered transform path currently reaches <code>{targetArtifactKind}</code>{" "}
+                    from <code>{currentArtifact.kind}</code>.
+                  </p>
+                )
+              ) : (
+                <p className="workbench-note">
+                  Choose a target kind to reveal a simple registered path. Execution is still
+                  manual, one transform click per step.
+                </p>
+              )}
             </div>
 
             {compatibleTransforms.length === 0 ? (
