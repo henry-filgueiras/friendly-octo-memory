@@ -1,6 +1,17 @@
-import { useMemo, useState } from "react";
-import type { LensDemoScenario } from "../../../packages/lens-core/src/demos";
-import { lensShellClasses } from "../../../packages/lens-core/src/shell";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { LensDemoScenario } from "lens-core";
+import {
+  LensHero,
+  LensPanel,
+  LensShell,
+  LensStatGrid,
+  exportScenarioJson,
+  lensShellClasses,
+  loadLocalScenario,
+  readJsonFile,
+  saveLocalScenario,
+  unwrapScenarioEnvelope,
+} from "lens-core";
 
 interface WorkbenchScenario {
   id: string;
@@ -42,16 +53,49 @@ const DEMOS: LensDemoScenario<WorkbenchScenario>[] = [
   },
 ];
 
+const STORAGE_KEY = "lens-workbench.scenario.v1";
+
+function createEmptyWorkbenchScenario(): WorkbenchScenario {
+  return DEMOS[0].scenario;
+}
+
+function syncWorkbenchScenario(scenario: WorkbenchScenario): WorkbenchScenario {
+  return {
+    ...scenario,
+    entities: [...scenario.entities],
+  };
+}
+
 export default function App() {
-  const [selectedDemoId, setSelectedDemoId] = useState<string>(DEMOS[0].id);
+  const importRef = useRef<HTMLInputElement | null>(null);
+  const [scenario, setScenario] = useState<WorkbenchScenario>(() =>
+    loadLocalScenario({
+      createEmpty: createEmptyWorkbenchScenario,
+      storageKey: STORAGE_KEY,
+      sync: syncWorkbenchScenario,
+    })
+  );
   const selectedDemo = useMemo(
-    () => DEMOS.find((demo) => demo.id === selectedDemoId) ?? DEMOS[0],
-    [selectedDemoId]
+    () => DEMOS.find((demo) => demo.scenario.id === scenario.id) ?? DEMOS[0],
+    [scenario.id]
   );
 
+  useEffect(() => {
+    saveLocalScenario(STORAGE_KEY, scenario);
+  }, [scenario]);
+
+  async function handleImport(file: File | null) {
+    if (!file) {
+      return;
+    }
+
+    const parsed = await readJsonFile<WorkbenchScenario | { scenario: WorkbenchScenario }>(file);
+    setScenario(syncWorkbenchScenario(unwrapScenarioEnvelope(parsed)));
+  }
+
   return (
-    <div className={lensShellClasses.app}>
-      <header className={lensShellClasses.hero}>
+    <LensShell>
+      <LensHero>
         <div className={lensShellClasses.heroBody}>
           <p className={lensShellClasses.eyebrow}>Shared chassis sandbox</p>
           <h1>Lens Workbench</h1>
@@ -76,19 +120,50 @@ export default function App() {
                   className={`workbench-button ${
                     demo.id === selectedDemo.id ? "workbench-button--active" : ""
                   }`}
-                  onClick={() => setSelectedDemoId(demo.id)}
+                  onClick={() => setScenario(syncWorkbenchScenario(demo.scenario))}
                 >
                   <strong>{demo.label}</strong>
                   <span>{demo.description}</span>
                 </button>
               ))}
             </div>
+            <div className="workbench-actions">
+              <button
+                type="button"
+                className="workbench-button"
+                onClick={() => exportScenarioJson("lens-workbench.json", scenario)}
+              >
+                <strong>Export JSON</strong>
+                <span>Exercises the shared download/export helper path.</span>
+              </button>
+              <button
+                type="button"
+                className="workbench-button"
+                onClick={() => importRef.current?.click()}
+              >
+                <strong>Import JSON</strong>
+                <span>Exercises the shared JSON read path too.</span>
+              </button>
+              <input
+                ref={importRef}
+                type="file"
+                accept="application/json,.json"
+                hidden
+                onChange={async (event) => {
+                  try {
+                    await handleImport(event.target.files?.[0] ?? null);
+                  } finally {
+                    event.currentTarget.value = "";
+                  }
+                }}
+              />
+            </div>
           </div>
         </div>
-      </header>
+      </LensHero>
 
       <main className={lensShellClasses.workspace}>
-        <section className={lensShellClasses.panel}>
+        <LensPanel>
           <div className={lensShellClasses.panelHeader}>
             <div>
               <p className={lensShellClasses.eyebrow}>Editor</p>
@@ -99,34 +174,34 @@ export default function App() {
           <div className="workbench-card">
             <label className="workbench-field">
               <span>Name</span>
-              <input value={selectedDemo.scenario.name} readOnly />
+              <input value={scenario.name} readOnly />
             </label>
             <label className="workbench-field">
               <span>Description</span>
-              <textarea rows={4} value={selectedDemo.scenario.description} readOnly />
+              <textarea rows={4} value={scenario.description} readOnly />
             </label>
           </div>
-        </section>
+        </LensPanel>
 
-        <section className={lensShellClasses.panel}>
+        <LensPanel>
           <div className={lensShellClasses.panelHeader}>
             <div>
               <p className={lensShellClasses.eyebrow}>Analysis</p>
               <h2>What the shell can share safely</h2>
             </div>
-            <div className={lensShellClasses.statGrid}>
+            <LensStatGrid>
               <div className={lensShellClasses.statCard}>
                 <span>Demo</span>
                 <strong>{selectedDemo.label}</strong>
               </div>
               <div className={lensShellClasses.statCard}>
                 <span>Entities</span>
-                <strong>{selectedDemo.scenario.entities.length}</strong>
+                <strong>{scenario.entities.length}</strong>
               </div>
-            </div>
+            </LensStatGrid>
           </div>
           <div className="workbench-stack">
-            {selectedDemo.scenario.entities.map((entity) => (
+            {scenario.entities.map((entity) => (
               <article key={entity.id} className="workbench-entity">
                 <p className={lensShellClasses.eyebrow}>Pane role</p>
                 <h3>{entity.name}</h3>
@@ -134,9 +209,9 @@ export default function App() {
               </article>
             ))}
           </div>
-        </section>
+        </LensPanel>
 
-        <section className={lensShellClasses.panel}>
+        <LensPanel>
           <div className={lensShellClasses.panelHeader}>
             <div>
               <p className={lensShellClasses.eyebrow}>Inspector</p>
@@ -151,8 +226,8 @@ export default function App() {
               <li>The coincidence is in the frame, not the engine.</li>
             </ul>
           </div>
-        </section>
+        </LensPanel>
       </main>
-    </div>
+    </LensShell>
   );
 }

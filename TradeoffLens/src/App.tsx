@@ -36,7 +36,7 @@ import {
   exportScenarioJson,
   readJsonFile,
   unwrapScenarioEnvelope,
-} from "../../packages/lens-core/src/io";
+} from "lens-core";
 import { loadScenario, saveScenario } from "./utils/storage";
 
 type AnalysisTab = "ranked" | "excluded" | "pairwise" | "frontier";

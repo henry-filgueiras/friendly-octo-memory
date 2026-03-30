@@ -1,6 +1,6 @@
 import { createCandidate, createId, createScenarioFromSeed } from "../domain/helpers";
 import type { DecisionScenario, EnumOption } from "../domain/types";
-import type { LensDemoScenario } from "../../../packages/lens-core/src/demos";
+import type { LensDemoScenario } from "lens-core";
 
 function enumOptions(labelsAndScores: Array<[string, number]>): EnumOption[] {
   return labelsAndScores.map(([label, score]) => ({
