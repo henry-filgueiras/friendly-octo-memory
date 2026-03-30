@@ -4,20 +4,8 @@ interface LoadLocalScenarioOptions<TScenario> {
   sync: (scenario: TScenario) => TScenario;
 }
 
-type Envelope<TScenario> = TScenario | { scenario: TScenario };
-
-function unwrapStoredScenario<TScenario>(parsed: Envelope<TScenario>): TScenario {
-  if (
-    parsed &&
-    typeof parsed === "object" &&
-    "scenario" in parsed &&
-    parsed.scenario !== undefined
-  ) {
-    return parsed.scenario;
-  }
-
-  return parsed as TScenario;
-}
+import type { LensScenarioEnvelope } from "./scenario";
+import { unwrapScenarioEnvelope } from "./scenario";
 
 export function loadLocalScenario<TScenario>({
   createEmpty,
@@ -35,7 +23,7 @@ export function loadLocalScenario<TScenario>({
       return createEmpty();
     }
 
-    return sync(unwrapStoredScenario(JSON.parse(raw) as Envelope<TScenario>));
+    return sync(unwrapScenarioEnvelope(JSON.parse(raw) as LensScenarioEnvelope<TScenario>));
   } catch {
     return createEmpty();
   }

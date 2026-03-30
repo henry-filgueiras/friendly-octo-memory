@@ -1,4 +1,4 @@
-type Envelope<TScenario> = TScenario | { scenario: TScenario };
+export { unwrapScenarioEnvelope } from "./scenario";
 
 export function downloadText(filename: string, content: string, mimeType: string): void {
   const blob = new Blob([content], { type: mimeType });
@@ -17,19 +17,4 @@ export function exportScenarioJson<TScenario>(filename: string, scenario: TScena
 export async function readJsonFile<TValue>(file: File): Promise<TValue> {
   const text = await file.text();
   return JSON.parse(text) as TValue;
-}
-
-export function unwrapScenarioEnvelope<TScenario>(
-  parsed: Envelope<TScenario>
-): TScenario {
-  if (
-    parsed &&
-    typeof parsed === "object" &&
-    "scenario" in parsed &&
-    parsed.scenario !== undefined
-  ) {
-    return parsed.scenario;
-  }
-
-  return parsed as TScenario;
 }
