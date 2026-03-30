@@ -47,6 +47,7 @@ const GUIDED_DEMO_STEPS: GuidedDemoStep[] = [
 
 export default function App() {
   const importInputRef = useRef<HTMLInputElement | null>(null);
+  const analysisPaneRef = useRef<HTMLElement | null>(null);
   const [guidedDemoStepIndex, setGuidedDemoStepIndex] = useState<number | null>(null);
   const {
     analysis,
@@ -84,6 +85,22 @@ export default function App() {
       setSelectedTaskId(guidedDemoStep.focusTaskId);
     }
   }, [guidedDemoStep, scenario.tasks, setAnalysisView, setSelectedTaskId]);
+
+  useEffect(() => {
+    if (!guidedDemoStep || !analysisPaneRef.current) {
+      return;
+    }
+
+    const frameId = window.requestAnimationFrame(() => {
+      analysisPaneRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+        inline: "nearest",
+      });
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, [guidedDemoStep]);
 
   async function handleImport(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -193,6 +210,8 @@ export default function App() {
           analysis={analysis}
           analysisView={analysisView}
           deadlineDay={scenario.deadlineDay}
+          isGuidedDemoFocused={Boolean(guidedDemoStep)}
+          paneRef={analysisPaneRef}
           selectedTaskId={selectedTaskId}
           onSelectTask={setSelectedTaskId}
           onSetAnalysisView={setAnalysisView}

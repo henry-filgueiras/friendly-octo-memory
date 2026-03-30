@@ -179,6 +179,16 @@ h3 {
 .pane {
   min-height: 60vh;
   padding: 1rem;
+  scroll-margin-top: 1rem;
+}
+
+.pane--guided-focus {
+  border-color: rgba(225, 132, 59, 0.52);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 0 0 1px rgba(225, 132, 59, 0.26),
+    0 0 0 10px rgba(225, 132, 59, 0.05);
+  animation: guidedPanePulse 1.8s ease-in-out infinite;
 }
 
 .pane--editor,
@@ -195,6 +205,30 @@ h3 {
 
 .section-card--analysis {
   min-height: 70vh;
+}
+
+.analysis-focus-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-bottom: 0.9rem;
+  padding: 0.45rem 0.72rem;
+  border-radius: 999px;
+  border: 1px solid rgba(225, 132, 59, 0.38);
+  background: rgba(225, 132, 59, 0.1);
+  color: rgba(237, 242, 241, 0.94);
+  font-size: 0.84rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.analysis-focus-badge__dot {
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 999px;
+  background: #e1843b;
+  box-shadow: 0 0 0 0 rgba(225, 132, 59, 0.55);
+  animation: guidedDotPulse 1.4s ease-out infinite;
 }
 
 .section-heading {
@@ -586,6 +620,39 @@ h3 {
   margin-bottom: 0;
   color: rgba(237, 242, 241, 0.78);
   line-height: 1.6;
+}
+
+@keyframes guidedPanePulse {
+  0%,
+  100% {
+    border-color: rgba(225, 132, 59, 0.42);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.04),
+      0 0 0 1px rgba(225, 132, 59, 0.18),
+      0 0 0 0 rgba(225, 132, 59, 0.04);
+  }
+
+  50% {
+    border-color: rgba(225, 132, 59, 0.72);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.04),
+      0 0 0 1px rgba(225, 132, 59, 0.28),
+      0 0 0 12px rgba(225, 132, 59, 0.08);
+  }
+}
+
+@keyframes guidedDotPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(225, 132, 59, 0.55);
+  }
+
+  70% {
+    box-shadow: 0 0 0 10px rgba(225, 132, 59, 0);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(225, 132, 59, 0);
+  }
 }
 
 @media (max-width: 1200px) {

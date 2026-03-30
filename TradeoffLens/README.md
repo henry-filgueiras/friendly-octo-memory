@@ -9,6 +9,7 @@ Tradeoff Lens is a local-only browser tool for comparing options under explicit 
 - Mark criteria as hard constraints and exclude candidates with explicit reasons
 - Compute deterministic weighted rankings with normalized numeric scoring
 - Show ranked candidates, excluded candidates, pairwise comparisons, dominance flags, and a Pareto frontier
+- Include a built-in guided walkthrough using the TV-show demo scenario
 - Explain why a candidate ranked where it did and what would most likely need to change to overtake the leader
 - Persist the current scenario in `localStorage`
 - Import and export scenarios as JSON
