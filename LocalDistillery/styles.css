@@ -436,6 +436,56 @@ textarea {
   text-underline-offset: 0.14em;
 }
 
+.graph-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.graph-meta {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.graph-svg {
+  width: 100%;
+  height: auto;
+  min-height: 260px;
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.7), rgba(255,247,232,0.85));
+  border: 1px solid rgba(83, 61, 34, 0.1);
+}
+
+.graph-edge {
+  stroke: rgba(163, 76, 33, 0.42);
+}
+
+.graph-node {
+  fill: rgba(163, 76, 33, 0.18);
+  stroke: rgba(127, 57, 21, 0.6);
+  stroke-width: 1.5;
+}
+
+.graph-label {
+  fill: var(--text);
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.graph-source {
+  border: 1px solid rgba(83, 61, 34, 0.1);
+  border-radius: 12px;
+  background: rgba(255,255,255,0.55);
+  padding: 10px 12px;
+}
+
+.graph-source summary {
+  cursor: pointer;
+  color: var(--accent-strong);
+  font-weight: 600;
+}
+
 .result-body pre {
   white-space: pre-wrap;
   word-break: break-word;

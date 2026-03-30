@@ -15,6 +15,7 @@
     { id: "questions", label: "Open questions", kicker: "Unknowns" },
     { id: "motifs", label: "Repeated terms / motifs", kicker: "Patterns" },
     { id: "entities", label: "Concept / entity list", kicker: "Concepts" },
+    { id: "graph", label: "Concept graph", kicker: "Topology" },
   ];
 
   const MODE_HINTS = {
@@ -480,10 +481,103 @@ local-only processing`;
       return list;
     }
 
+    if (value && value.type === "graph") {
+      return renderConceptGraph(value);
+    }
+
     const container = document.createElement("div");
     container.className = "markdown-fragment";
     container.append(renderMarkdownFragment(value || "None detected"));
     return container;
+  }
+
+  function renderConceptGraph(graph) {
+    const container = document.createElement("div");
+    container.className = "graph-panel";
+
+    if (!graph.nodes.length) {
+      container.append(renderMarkdownFragment("No graphable concepts detected."));
+      return container;
+    }
+
+    const meta = document.createElement("p");
+    meta.className = "graph-meta";
+    meta.textContent = "Co-occurrence graph from nearby concepts. Mermaid source is included below.";
+    container.append(meta);
+
+    container.append(buildGraphSvg(graph));
+
+    const details = document.createElement("details");
+    details.className = "graph-source";
+    const summary = document.createElement("summary");
+    summary.textContent = "Mermaid source";
+    details.append(summary);
+    const pre = document.createElement("pre");
+    const code = document.createElement("code");
+    code.textContent = graph.mermaid;
+    pre.append(code);
+    details.append(pre);
+    container.append(details);
+
+    return container;
+  }
+
+  function buildGraphSvg(graph) {
+    const width = 560;
+    const height = 320;
+    const ns = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(ns, "svg");
+    svg.setAttribute("viewBox", "0 0 " + width + " " + height);
+    svg.setAttribute("class", "graph-svg");
+
+    const cx = width / 2;
+    const cy = height / 2;
+    const radius = Math.min(width, height) * 0.34;
+    const positions = {};
+
+    graph.nodes.forEach(function (node, index) {
+      const angle = (Math.PI * 2 * index) / Math.max(graph.nodes.length, 1) - Math.PI / 2;
+      positions[node.id] = {
+        x: cx + Math.cos(angle) * radius,
+        y: cy + Math.sin(angle) * radius,
+      };
+    });
+
+    graph.edges.forEach(function (edge) {
+      const source = positions[edge.source];
+      const target = positions[edge.target];
+      if (!source || !target) return;
+      const line = document.createElementNS(ns, "line");
+      line.setAttribute("x1", source.x);
+      line.setAttribute("y1", source.y);
+      line.setAttribute("x2", target.x);
+      line.setAttribute("y2", target.y);
+      line.setAttribute("class", "graph-edge");
+      line.setAttribute("stroke-width", String(1 + edge.weight * 0.7));
+      svg.append(line);
+    });
+
+    graph.nodes.forEach(function (node) {
+      const position = positions[node.id];
+      const group = document.createElementNS(ns, "g");
+      const circle = document.createElementNS(ns, "circle");
+      circle.setAttribute("cx", position.x);
+      circle.setAttribute("cy", position.y);
+      circle.setAttribute("r", String(18 + Math.min(node.weight, 5) * 2));
+      circle.setAttribute("class", "graph-node");
+      group.append(circle);
+
+      const label = document.createElementNS(ns, "text");
+      label.setAttribute("x", position.x);
+      label.setAttribute("y", position.y + 4);
+      label.setAttribute("text-anchor", "middle");
+      label.setAttribute("class", "graph-label");
+      label.textContent = truncateLabel(node.label, 18);
+      group.append(label);
+      svg.append(group);
+    });
+
+    return svg;
   }
 
   function renderMarkdownFragment(text) {
@@ -639,6 +733,7 @@ local-only processing`;
         questions: extractQuestions(lines, sentences),
         motifs: extractMotifs(normalized.joined, frequency, profile),
         entities: extractEntities(lines, normalized.joined, profile.entityCount),
+        graph: buildConceptGraph(lines, normalized.joined, profile.entityCount),
       },
       stats: {
         characters: text.length,
@@ -671,6 +766,14 @@ local-only processing`;
           lines.push("- None detected");
         } else {
           value.forEach(function (item) { lines.push("- " + item); });
+        }
+      } else if (value && value.type === "graph") {
+        if (!value.nodes.length) {
+          lines.push("None detected");
+        } else {
+          lines.push("```mermaid");
+          lines.push(value.mermaid);
+          lines.push("```");
         }
       } else {
         lines.push(value || "None detected");
@@ -835,6 +938,80 @@ local-only processing`;
       .map(function (entry) { return entry[0]; });
   }
 
+  function buildConceptGraph(lines, text, limit) {
+    const entityPattern = /\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,2}|[A-Z]{2,}(?:-[A-Z]{2,})?|\d{4}-\d{2}-\d{2})\b/g;
+    const bannedSingles = new Set(["The", "This", "That", "These", "Those", "A", "An"]);
+    const frequency = countTerms(text);
+    const nodeWeights = new Map();
+    const edgeWeights = new Map();
+
+    lines.forEach(function (line) {
+      const entityMatches = (line.match(entityPattern) || []).map(function (item) { return item.trim(); }).filter(function (item) {
+        return item.length > 1 && !bannedSingles.has(item);
+      });
+      const keywordMatches = (line.toLowerCase().match(/[a-z][a-z0-9'-]{2,}/g) || []).filter(function (token) {
+        return !DEFAULT_STOP_WORDS.has(token);
+      }).map(titleCase);
+      const concepts = uniq(entityMatches.concat(keywordMatches)).slice(0, Math.max(limit, 8));
+
+      concepts.forEach(function (concept) {
+        nodeWeights.set(concept, (nodeWeights.get(concept) || 0) + 1);
+      });
+
+      for (let i = 0; i < concepts.length; i += 1) {
+        for (let j = i + 1; j < concepts.length; j += 1) {
+          const pair = [concepts[i], concepts[j]].sort().join("|||");
+          edgeWeights.set(pair, (edgeWeights.get(pair) || 0) + 1);
+        }
+      }
+    });
+
+    if (nodeWeights.size === 0) {
+      Array.from(frequency.entries()).slice(0, Math.min(limit, 6)).forEach(function (entry) {
+        nodeWeights.set(titleCase(entry[0]), entry[1]);
+      });
+    }
+
+    const nodes = Array.from(nodeWeights.entries())
+      .sort(function (a, b) { return b[1] - a[1] || a[0].localeCompare(b[0]); })
+      .slice(0, Math.min(limit, 8))
+      .map(function (entry) {
+        return { id: slugify(entry[0]), label: entry[0], weight: entry[1] };
+      });
+
+    const allowed = new Set(nodes.map(function (node) { return node.label; }));
+    const edges = Array.from(edgeWeights.entries())
+      .map(function (entry) {
+        const parts = entry[0].split("|||");
+        return { sourceLabel: parts[0], targetLabel: parts[1], weight: entry[1] };
+      })
+      .filter(function (edge) { return allowed.has(edge.sourceLabel) && allowed.has(edge.targetLabel); })
+      .sort(function (a, b) { return b.weight - a.weight || a.sourceLabel.localeCompare(b.sourceLabel); })
+      .slice(0, 12)
+      .map(function (edge) {
+        return {
+          source: slugify(edge.sourceLabel),
+          target: slugify(edge.targetLabel),
+          weight: edge.weight,
+        };
+      });
+
+    const mermaidLines = ["graph TD"];
+    nodes.forEach(function (node) {
+      mermaidLines.push("  " + node.id + "["" + escapeMermaidLabel(node.label) + ""]");
+    });
+    edges.forEach(function (edge) {
+      mermaidLines.push("  " + edge.source + " -->|" + edge.weight + "| " + edge.target);
+    });
+
+    return {
+      type: "graph",
+      nodes: nodes,
+      edges: edges,
+      mermaid: mermaidLines.join("\n"),
+    };
+  }
+
   function extractEntities(lines, text, limit) {
     const entityCounts = new Map();
     const entityPattern = /\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,2}|[A-Z]{2,}(?:-[A-Z]{2,})?|\d{4}-\d{2}-\d{2})\b/g;
@@ -932,6 +1109,18 @@ local-only processing`;
 
   function titleCase(value) {
     return value.charAt(0).toUpperCase() + value.slice(1);
+  }
+
+  function truncateLabel(value, limit) {
+    return value.length > limit ? value.slice(0, limit - 1) + "..." : value;
+  }
+
+  function slugify(value) {
+    return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "node";
+  }
+
+  function escapeMermaidLabel(value) {
+    return value.replace(/"/g, "'");
   }
 
   function openFilePicker() {

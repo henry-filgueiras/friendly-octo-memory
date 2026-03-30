@@ -1,15 +1,21 @@
 # friendly-octo-memory
 
-This repository currently contains the Local Distillery browser app prototype.
+This repository now contains two local-first browser tools.
 
-## Open the app
+## Apps
 
-- Direct app entry: `LocalDistillery/index.html`
-- Repo-root launcher: `index.html`
+- `LocalDistillery`: static local-only text distillation tool
+- `TradeoffLens`: React + TypeScript + Vite decision-analysis tool
 
-If you open the repo-root `index.html`, it redirects straight into the app.
+## Open locally
 
-## App folder
+- `LocalDistillery`
+  - Direct app entry: `LocalDistillery/index.html`
+- `TradeoffLens`
+  - App source: `TradeoffLens`
+  - Run with `cd /Users/henry/friendly-octo-memory/TradeoffLens && npm install && npm run dev`
 
-- App source lives in `LocalDistillery`
-- App-specific docs live in `LocalDistillery/README.md`
+## Docs
+
+- `LocalDistillery/README.md`
+- `TradeoffLens/README.md`
