@@ -66,7 +66,9 @@ textarea {
 .workbench-stack,
 .workbench-field,
 .recipe-progress,
-.recipe-progress__details {
+.recipe-progress__details,
+.recipe-summary-grid,
+.recipe-alert {
   display: grid;
   gap: 0.75rem;
 }
@@ -106,6 +108,12 @@ textarea {
   background: rgba(103, 184, 216, 0.08);
 }
 
+.workbench-button--promote {
+  border-color: rgba(225, 132, 59, 0.52);
+  background: rgba(225, 132, 59, 0.14);
+  box-shadow: 0 0 0 1px rgba(225, 132, 59, 0.1);
+}
+
 .recipe-progress {
   margin-top: 0.9rem;
   padding-top: 0.9rem;
@@ -119,6 +127,50 @@ textarea {
 .recipe-progress__chain {
   display: grid;
   gap: 0.6rem;
+}
+
+.recipe-summary-card {
+  padding: 0.85rem;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.recipe-summary-grid {
+  margin: 0;
+}
+
+.recipe-summary-grid div {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.recipe-summary-grid dt {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(238, 243, 247, 0.56);
+}
+
+.recipe-summary-grid dd {
+  margin: 0;
+  color: rgba(238, 243, 247, 0.9);
+}
+
+.recipe-alert {
+  padding: 0.85rem 0.9rem;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.recipe-alert--paused {
+  border-color: rgba(103, 184, 216, 0.34);
+  background: rgba(103, 184, 216, 0.1);
+}
+
+.recipe-alert--promote {
+  border-color: rgba(225, 132, 59, 0.42);
+  background: rgba(225, 132, 59, 0.12);
 }
 
 .workbench-field span {

@@ -311,6 +311,15 @@ export default function App() {
   const currentRecipeStep = activeRecipeTransforms[completedRecipeSteps];
   const currentRecipeHint = activeRecipe?.stepHints?.[completedRecipeSteps];
   const remainingRecipeTransforms = activeRecipeTransforms.slice(completedRecipeSteps);
+  const recipeStepMatchesCurrentArtifact = Boolean(
+    currentRecipeStep && currentArtifact.kind === currentRecipeStep.inputKind
+  );
+  const recipeCanContinueWithDerivedArtifact = Boolean(
+    currentRecipeStep &&
+      derivedArtifact &&
+      derivedArtifact.kind === currentRecipeStep.inputKind &&
+      currentArtifact.kind !== currentRecipeStep.inputKind
+  );
 
   useEffect(() => {
     setDerivedArtifact(null);
@@ -616,6 +625,38 @@ export default function App() {
                     ))}
                   </div>
 
+                  <div className="recipe-summary-card">
+                    <p className={lensShellClasses.eyebrow}>Transform summary</p>
+                    <dl className="recipe-summary-grid">
+                      <div>
+                        <dt>Current recipe</dt>
+                        <dd>{activeRecipe.label}</dd>
+                      </div>
+                      <div>
+                        <dt>Current step</dt>
+                        <dd>{currentRecipeStep?.name ?? "Complete"}</dd>
+                      </div>
+                      <div>
+                        <dt>Expected input kind</dt>
+                        <dd>{currentRecipeStep?.inputKind ?? activeRecipe.targetKind}</dd>
+                      </div>
+                      <div>
+                        <dt>Expected output kind</dt>
+                        <dd>{currentRecipeStep?.outputKind ?? activeRecipe.targetKind}</dd>
+                      </div>
+                      <div>
+                        <dt>Current artifact matches</dt>
+                        <dd>
+                          {currentRecipeStep
+                            ? recipeStepMatchesCurrentArtifact
+                              ? "Yes"
+                              : "No"
+                            : "Done"}
+                        </dd>
+                      </div>
+                    </dl>
+                  </div>
+
                   {currentRecipeStep ? (
                     <div className="recipe-progress__details">
                       <p className={lensShellClasses.eyebrow}>Current step</p>
@@ -631,11 +672,29 @@ export default function App() {
                           <strong>Review hint:</strong> {currentRecipeHint.reviewHint}
                         </p>
                       ) : null}
-                      <p className="workbench-note">
-                        {currentArtifact.kind === currentRecipeStep.inputKind
-                          ? "The expected next transform is preselected below."
-                          : `Promote or load a ${currentRecipeStep.inputKind} artifact to continue this recipe.`}
-                      </p>
+                      {recipeStepMatchesCurrentArtifact ? (
+                        <p className="workbench-note">
+                          The expected next transform is preselected below.
+                        </p>
+                      ) : (
+                        <div className="recipe-alert recipe-alert--paused">
+                          <strong>Recipe paused</strong>
+                          <span>
+                            Waiting for a <code>{currentRecipeStep.inputKind}</code> artifact as
+                            the current source before the next manual step can continue.
+                          </span>
+                          {recipeCanContinueWithDerivedArtifact ? (
+                            <span>
+                              The derived artifact already matches. Promote it below to continue.
+                            </span>
+                          ) : (
+                            <span>
+                              Load or promote the correct artifact kind manually. The lab will not
+                              switch it for you.
+                            </span>
+                          )}
+                        </div>
+                      )}
                       <p className="workbench-note">
                         Remaining steps:{" "}
                         {remainingRecipeTransforms.map((transform) => transform.outputKind).join(", ")}
@@ -777,11 +836,21 @@ export default function App() {
               {derivedArtifact ? (
                 <button
                   type="button"
-                  className="workbench-button"
+                  className={`workbench-button ${
+                    recipeCanContinueWithDerivedArtifact ? "workbench-button--promote" : ""
+                  }`}
                   onClick={() => setCurrentArtifact(derivedArtifact)}
                 >
-                  <strong>Use derived artifact as current</strong>
-                  <span>Promote the derived artifact so you can apply the next compatible step.</span>
+                  <strong>
+                    {recipeCanContinueWithDerivedArtifact
+                      ? "Promote derived artifact to continue recipe"
+                      : "Use derived artifact as current"}
+                  </strong>
+                  <span>
+                    {recipeCanContinueWithDerivedArtifact
+                      ? `Recipe mode is waiting for ${derivedArtifact.kind} as the current source.`
+                      : "Promote the derived artifact so you can apply the next compatible step."}
+                  </span>
                 </button>
               ) : null}
             </div>
@@ -840,6 +909,20 @@ export default function App() {
                     ))}
                   </ul>
                 </div>
+
+                {recipeCanContinueWithDerivedArtifact ? (
+                  <div className="recipe-alert recipe-alert--promote">
+                    <strong>Manual handoff required</strong>
+                    <span>
+                      This derived <code>{derivedArtifact.kind}</code> artifact matches the next
+                      recipe step, but it is not current yet.
+                    </span>
+                    <span>
+                      Use <code>Promote derived artifact to continue recipe</code> before applying
+                      the next transform.
+                    </span>
+                  </div>
+                ) : null}
 
                 <button
                   type="button"
