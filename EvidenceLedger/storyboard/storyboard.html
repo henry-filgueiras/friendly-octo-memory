@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Evidence Ledger storyboard</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: "IBM Plex Sans", "Avenir Next", sans-serif;
+        background:
+          radial-gradient(circle at top left, rgba(103, 184, 216, 0.12), transparent 22%),
+          radial-gradient(circle at top right, rgba(225, 132, 59, 0.16), transparent 28%),
+          linear-gradient(180deg, #f3efe5 0%, #e9dfcf 100%);
+        color: #261d14;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: inherit;
+      }
+
+      main {
+        width: 1520px;
+        margin: 0 auto;
+        padding: 24px;
+        display: grid;
+        gap: 18px;
+      }
+
+      .hero,
+      .card {
+        border-radius: 28px;
+        background: rgba(255, 252, 246, 0.86);
+        border: 1px solid rgba(56, 41, 28, 0.08);
+        box-shadow: 0 20px 54px rgba(56, 41, 28, 0.08);
+      }
+
+      .hero {
+        display: grid;
+        grid-template-columns: 1.35fr 0.85fr;
+        gap: 18px;
+        padding: 22px 24px;
+      }
+
+      .eyebrow {
+        margin: 0 0 8px;
+        font-size: 11px;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: #9c6e2d;
+      }
+
+      h1,
+      h2,
+      p {
+        margin-top: 0;
+      }
+
+      h1 {
+        margin-bottom: 10px;
+        font-size: 54px;
+        line-height: 0.98;
+      }
+
+      h2 {
+        margin-bottom: 10px;
+        font-size: 30px;
+        line-height: 1.05;
+      }
+
+      .lede {
+        font-size: 20px;
+        line-height: 1.5;
+        color: rgba(38, 29, 20, 0.8);
+      }
+
+      .pill-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .pill {
+        padding: 7px 12px;
+        border-radius: 999px;
+        background: rgba(38, 29, 20, 0.05);
+        border: 1px solid rgba(38, 29, 20, 0.08);
+        font-size: 13px;
+      }
+
+      .how {
+        display: grid;
+        gap: 10px;
+      }
+
+      .how-step {
+        padding: 12px 14px;
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.66);
+        border: 1px solid rgba(38, 29, 20, 0.08);
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px;
+      }
+
+      .card {
+        padding: 16px;
+      }
+
+      .frame {
+        position: relative;
+        overflow: hidden;
+        border-radius: 22px;
+        border: 1px solid rgba(38, 29, 20, 0.08);
+        background: #11161b;
+        margin-top: 12px;
+      }
+
+      .frame img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+
+      .frame--claims,
+      .frame--contested,
+      .frame--gaps,
+      .frame--matrix {
+        height: 330px;
+      }
+
+      .frame--claims img,
+      .frame--contested img,
+      .frame--gaps img {
+        object-position: center 32%;
+      }
+
+      .frame--matrix img {
+        object-position: center 34%;
+      }
+
+      .callout {
+        position: absolute;
+        max-width: 280px;
+        padding: 10px 12px;
+        border-radius: 16px;
+        background: rgba(255, 252, 245, 0.94);
+        border: 1px solid rgba(38, 29, 20, 0.1);
+        box-shadow: 0 10px 26px rgba(38, 29, 20, 0.12);
+        font-size: 13px;
+        line-height: 1.45;
+      }
+
+      .callout strong {
+        display: block;
+        margin-bottom: 4px;
+      }
+
+      .callout--a {
+        left: 18px;
+        top: 18px;
+      }
+
+      .callout--b {
+        right: 18px;
+        bottom: 18px;
+      }
+
+      .footer {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        font-size: 12px;
+        color: rgba(38, 29, 20, 0.72);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="hero">
+        <div>
+          <p class="eyebrow">Annotated storyboard</p>
+          <h1>Evidence Ledger turns competing narratives into an inspectable evidence map.</h1>
+          <p class="lede">
+            Instead of making certainty look effortless, it keeps support, contradiction, source
+            quality, and missing evidence visible in one local-only reasoning surface.
+          </p>
+          <div class="pill-row">
+            <span class="pill">Claims and sources</span>
+            <span class="pill">Support vs contradiction</span>
+            <span class="pill">Source reliability</span>
+            <span class="pill">Gap detection</span>
+            <span class="pill">Plain-English explanations</span>
+          </div>
+        </div>
+        <div class="how">
+          <div class="how-step">
+            <p class="eyebrow">How to read it</p>
+            <strong>1. Write the claims down</strong>
+            <span>Don’t start from consensus. Start from the actual hypotheses in play.</span>
+          </div>
+          <div class="how-step">
+            <strong>2. Wire in evidence explicitly</strong>
+            <span>Every source either supports, contradicts, or merely mentions a claim.</span>
+          </div>
+          <div class="how-step">
+            <strong>3. Let the pressure surface</strong>
+            <span>The app pulls contested claims and thin gaps forward automatically.</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="grid">
+        <article class="card">
+          <p class="eyebrow">Step 1</p>
+          <h2>The main claims view shows where the narrative is carrying real weight.</h2>
+          <p>
+            Claims are ranked by importance and evidence pressure, so the discussion starts with
+            the issues that matter and already have signal attached.
+          </p>
+          <div class="frame frame--claims">
+            <img src="./raw/01-claims.png" alt="Claims view" />
+            <div class="callout callout--a">
+              <strong>Verdicts stay challengeable</strong>
+              “Supported” is derived from visible inputs, not hidden judgment.
+            </div>
+            <div class="callout callout--b">
+              <strong>Score rails show the tension</strong>
+              Support, contradiction, and mentions stay visible instead of collapsing into one number.
+            </div>
+          </div>
+        </article>
+
+        <article class="card">
+          <p class="eyebrow">Step 2</p>
+          <h2>Contested claims show where the story is still fighting itself.</h2>
+          <p>
+            This keeps disagreement explicit. A tidy retrospective often hides the most important unresolved claim.
+          </p>
+          <div class="frame frame--contested">
+            <img src="./raw/02-contested.png" alt="Contested claims view" />
+            <div class="callout callout--a">
+              <strong>Both sides have weight</strong>
+              The deploy hypothesis looks plausible until you place it next to the counter-evidence.
+            </div>
+          </div>
+        </article>
+
+        <article class="card">
+          <p class="eyebrow">Step 3</p>
+          <h2>Gap analysis turns “we should look into that” into a concrete next move.</h2>
+          <p>
+            Important claims with thin coverage bubble up fast, so the model can tell you what evidence is missing next.
+          </p>
+          <div class="frame frame--gaps">
+            <img src="./raw/03-gaps.png" alt="Evidence gaps view" />
+            <div class="callout callout--a">
+              <strong>Thin claims are visible risk</strong>
+              People still act on them even when the ledger says the evidence is weak.
+            </div>
+          </div>
+        </article>
+
+        <article class="card">
+          <p class="eyebrow">Step 4</p>
+          <h2>The matrix shows which sources are actually carrying each claim.</h2>
+          <p>
+            This is the quick read for single-source fragility, contradiction clusters, and source overreach.
+          </p>
+          <div class="frame frame--matrix">
+            <img src="./raw/04-matrix.png" alt="Source-by-claim matrix view" />
+            <div class="callout callout--a">
+              <strong>Structure beats intuition</strong>
+              One glance shows whether the story is broad-based or leaning too hard on one artifact.
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <footer class="footer">
+        <span>Evidence Ledger is local-only, deterministic, and designed to keep uncertainty legible.</span>
+        <span>`friendly-octo-memory` product storyboard</span>
+      </footer>
+    </main>
+  </body>
+</html>

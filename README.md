@@ -1,6 +1,6 @@
 # friendly-octo-memory
 
-`friendly-octo-memory` is turning into a small suite of local reasoning instruments: browser tools that help you distill raw material, compare options, and map execution without shipping data to a backend or hiding the logic behind a black box.
+`friendly-octo-memory` is turning into a small suite of local reasoning instruments: browser tools that help you distill raw material, pressure-test claims, compare options, and map execution without shipping data to a backend or hiding the logic behind a black box.
 
 - local-only browser apps
 - no accounts or analytics
@@ -9,11 +9,12 @@
 
 ## The spine
 
-The three tools fit together around one workflow:
+The four tools fit together around one workflow:
 
 1. `Local Distillery`: understand the material
-2. `Tradeoff Lens`: choose the direction
-3. `Threadline`: land the work
+2. `Evidence Ledger`: pressure-test the narrative
+3. `Tradeoff Lens`: choose the direction
+4. `Threadline`: land the work
 
 The point is not to make complexity disappear. The point is to make it feel juggleable.
 
@@ -36,6 +37,24 @@ make local-distillery-serve
 ```
 
 More detail lives in `LocalDistillery/README.md`.
+
+### Evidence Ledger
+
+Evidence Ledger is the evidence-mapping tool: a local-only app for comparing claims against supporting sources, contradiction, and what evidence is still missing.
+
+- deterministic evidence scoring from source reliability, strength, and confidence
+- claims, contested, gap, and matrix views
+- best when a neat story is arriving too early and the real need is to keep uncertainty visible
+
+![Evidence Ledger storyboard](EvidenceLedger/storyboard/evidence-ledger-storyboard.png)
+
+Quick start:
+
+```bash
+make evidence-ledger-dev
+```
+
+More detail lives in `EvidenceLedger/README.md`.
 
 ### Tradeoff Lens
 
@@ -78,6 +97,7 @@ More detail lives in `Threadline/README.md`.
 Each tool specializes in a different kind of complexity:
 
 - `Local Distillery` turns source chaos into a usable artifact.
+- `Evidence Ledger` turns competing narratives into an inspectable evidence picture.
 - `Tradeoff Lens` turns ambiguity into an explicit decision model.
 - `Threadline` turns a complicated goal into an inspectable execution model.
 
@@ -89,6 +109,9 @@ Repo-root shortcuts:
 
 ```bash
 make local-distillery-serve
+make evidence-ledger-dev
+make evidence-ledger-build
+make evidence-ledger-preview
 make tradeoff-lens-dev
 make tradeoff-lens-build
 make tradeoff-lens-preview
@@ -101,9 +124,11 @@ make threadline-preview
 
 - `LocalDistillery`: text distillation app
 - `LocalDistillery/storyboard/local-distillery-storyboard.png`: Local Distillery walkthrough
+- `EvidenceLedger`: claim-and-evidence analysis app
+- `EvidenceLedger/storyboard/evidence-ledger-storyboard.png`: Evidence Ledger walkthrough
 - `TradeoffLens`: decision-analysis app
 - `TradeoffLens/storyboard/tradeoff-lens-storyboard.png`: Tradeoff Lens walkthrough
 - `Threadline`: planning and execution-mapping app
 - `Threadline/storyboard/threadline-storyboard.png`: Threadline walkthrough
 - `Makefile`: repo-root shortcuts for the suite
-- `index.html`: static browser launcher/gallery for all three tools
+- `index.html`: static browser launcher/gallery for all four tools

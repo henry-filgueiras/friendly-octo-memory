@@ -138,7 +138,7 @@
 
       .tool-grid {
         display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 1rem;
       }
 
@@ -210,7 +210,7 @@
       .story-grid,
       .matrix-grid {
         display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 1rem;
       }
 
@@ -290,11 +290,13 @@
             <p class="eyebrow">The spine</p>
             <div class="spine">
               <span>Distill</span>
+              <span>Pressure-test</span>
               <span>Decide</span>
               <span>Execute</span>
             </div>
             <p>
               <strong>Local Distillery</strong> turns raw material into an artifact.
+              <strong> Evidence Ledger</strong> turns competing narratives into an inspectable evidence picture.
               <strong> Tradeoff Lens</strong> turns ambiguity into a visible decision.
               <strong> Threadline</strong> turns a complicated goal into an executable plan.
             </p>
@@ -302,6 +304,7 @@
           <div class="rail-card">
             <p class="eyebrow">Quick launch</p>
             <p><code>make local-distillery-serve</code></p>
+            <p><code>make evidence-ledger-dev</code></p>
             <p><code>make tradeoff-lens-dev</code></p>
             <p><code>make threadline-dev</code></p>
           </div>
@@ -312,7 +315,7 @@
         <div class="section-head">
           <div>
             <p class="eyebrow">Choose your instrument</p>
-            <h2>Three tools, one idea</h2>
+            <h2>Four tools, one idea</h2>
           </div>
           <p class="section-note">
             Use the one that matches the shape of the problem. The suite is more convincing when
@@ -342,6 +345,31 @@
             <div class="actions">
               <a class="button" href="./LocalDistillery/index.html">Open app</a>
               <span class="command">make local-distillery-serve</span>
+            </div>
+          </article>
+
+          <article class="tool-card">
+            <div class="tool-thumb">
+              <img
+                src="./EvidenceLedger/storyboard/evidence-ledger-storyboard.png"
+                alt="Evidence Ledger storyboard"
+              />
+            </div>
+            <div>
+              <p class="eyebrow">Evidence mapping</p>
+              <h3>Evidence Ledger</h3>
+            </div>
+            <p class="tool-copy">
+              Pressure-test claims against supporting evidence, contradiction, and missing sources
+              so a clean narrative does not arrive earlier than the truth.
+            </p>
+            <ul class="mini-list">
+              <li>Best when the real problem is uncertainty hiding inside a tidy story.</li>
+              <li>Feels like an evidence instrument, not a note pile or a verdict machine.</li>
+            </ul>
+            <div class="actions">
+              <a class="button" href="./EvidenceLedger/">Open app</a>
+              <span class="command">make evidence-ledger-dev</span>
             </div>
           </article>
 
@@ -401,7 +429,7 @@
         <div class="section-head">
           <div>
             <p class="eyebrow">How they fit</p>
-            <h2>One workflow, three surfaces</h2>
+            <h2>One workflow, four surfaces</h2>
           </div>
           <p class="section-note">
             The suite works best when each tool gets to specialize. The handoff from one to the
@@ -418,7 +446,15 @@
             </p>
           </article>
           <article class="matrix-card">
-            <p class="eyebrow">2. Choose</p>
+            <p class="eyebrow">2. Pressure-test</p>
+            <h3>Challenge the narrative</h3>
+            <p>
+              Move to Evidence Ledger once the problem becomes which claims are truly supported,
+              contradicted, contested, or still thin on evidence.
+            </p>
+          </article>
+          <article class="matrix-card">
+            <p class="eyebrow">3. Choose</p>
             <h3>Make the tradeoffs explicit</h3>
             <p>
               Move to Tradeoff Lens once the real question is which option wins under stated values,
@@ -426,7 +462,7 @@
             </p>
           </article>
           <article class="matrix-card">
-            <p class="eyebrow">3. Land it</p>
+            <p class="eyebrow">4. Land it</p>
             <h3>Map execution and pressure</h3>
             <p>
               Use Threadline when the decision is made and the challenge becomes dependency shape,
@@ -454,6 +490,14 @@
             <p>
               Instead of asking you to read chaos until clarity appears, it extracts the shape of
               the material directly into something you can use.
+            </p>
+          </article>
+          <article class="story-card">
+            <p class="eyebrow">Evidence Ledger</p>
+            <h3>Competing stories become legible</h3>
+            <p>
+              Instead of letting confidence arrive by momentum, it shows exactly where the evidence
+              supports, contradicts, or simply runs out.
             </p>
           </article>
           <article class="story-card">
