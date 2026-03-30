@@ -248,7 +248,7 @@ export default function App() {
 
   function handleUpdateEnumOptions(criterion: EnumCriterion, nextOptions: EnumOption[]) {
     const nextCriterion = updateEnumOptionLabels(criterion, nextOptions);
-    const validLabels = new Set(nextOptions.map((option) => option.label));
+    const validIds = new Set(nextOptions.map((option) => option.id));
 
     updateScenario((current) => ({
       ...current,
@@ -258,9 +258,9 @@ export default function App() {
       candidates: current.candidates.map((candidate) => {
         const currentValue = candidate.values[criterion.id];
         const nextValue =
-          typeof currentValue === "string" && validLabels.has(currentValue)
+          typeof currentValue === "string" && validIds.has(currentValue)
             ? currentValue
-            : nextOptions[0]?.label ?? "";
+            : nextOptions[0]?.id ?? "";
 
         return {
           ...candidate,
@@ -585,7 +585,7 @@ export default function App() {
                           >
                             <option value="">Unset</option>
                             {criterion.options.map((option) => (
-                              <option key={option.id} value={option.label}>
+                              <option key={option.id} value={option.id}>
                                 {option.label}
                               </option>
                             ))}
@@ -900,7 +900,7 @@ export default function App() {
                             <label className="toggle-inline compact">
                               <input
                                 type="checkbox"
-                                checked={criterion.allowedValues.includes(option.label)}
+                                checked={criterion.allowedValues.includes(option.id)}
                                 disabled={!criterion.constraintEnabled}
                                 onChange={(event) =>
                                   updateCriterion(criterion.id, (current) => {
@@ -909,9 +909,9 @@ export default function App() {
                                     }
 
                                     const allowedValues = event.target.checked
-                                      ? [...current.allowedValues, option.label]
+                                      ? [...current.allowedValues, option.id]
                                       : current.allowedValues.filter(
-                                          (value) => value !== option.label
+                                          (value) => value !== option.id
                                         );
 
                                     return {

@@ -47,7 +47,7 @@ make tradeoff-lens-preview
 Direct app commands:
 
 ```bash
-cd /Users/henry/friendly-octo-memory/TradeoffLens
+cd TradeoffLens
 npm install
 npm run dev
 ```
@@ -55,7 +55,7 @@ npm run dev
 Built-app preview:
 
 ```bash
-cd /Users/henry/friendly-octo-memory/TradeoffLens
+cd TradeoffLens
 npm run build
 npm run preview
 ```
