@@ -13,7 +13,14 @@ This repository now contains two local-first browser tools.
   - Direct app entry: `LocalDistillery/index.html`
 - `TradeoffLens`
   - App source: `TradeoffLens`
-  - Run with `cd /Users/henry/friendly-octo-memory/TradeoffLens && npm install && npm run dev`
+  - Dev mode: `cd /Users/henry/friendly-octo-memory/TradeoffLens && npm install && npm run dev`
+  - Built preview: `cd /Users/henry/friendly-octo-memory/TradeoffLens && npm run build && npm run preview`
+
+## Repo shortcuts
+
+- `make tradeoff-lens-dev`
+- `make tradeoff-lens-build`
+- `make tradeoff-lens-preview`
 
 ## Docs
 

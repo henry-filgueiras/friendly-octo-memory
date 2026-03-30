@@ -17,13 +17,51 @@ Tradeoff Lens is a local-only browser tool for comparing options under explicit 
 
 ## Run locally
 
+### Dev mode
+
 ```bash
 cd /Users/henry/friendly-octo-memory/TradeoffLens
 npm install
 npm run dev
 ```
 
-Then open the local Vite URL shown in the terminal.
+Then open the local Vite URL shown in the terminal, typically `http://localhost:5173`.
+
+If you want a repo-root shortcut instead of remembering the folder change:
+
+```bash
+cd /Users/henry/friendly-octo-memory
+make tradeoff-lens-dev
+```
+
+### Built app
+
+To produce the production bundle:
+
+```bash
+cd /Users/henry/friendly-octo-memory/TradeoffLens
+npm run build
+```
+
+This writes the compiled app to [`dist/`](/Users/henry/friendly-octo-memory/TradeoffLens/dist).
+
+To preview the built app locally:
+
+```bash
+cd /Users/henry/friendly-octo-memory/TradeoffLens
+npm run preview -- --host 0.0.0.0
+```
+
+Or from the repo root:
+
+```bash
+cd /Users/henry/friendly-octo-memory
+make tradeoff-lens-preview
+```
+
+### Important note
+
+Do not serve the source folder with a plain static server like `python3 -m http.server` and then open `TradeoffLens/index.html`. The source app references [`src/main.tsx`](/Users/henry/friendly-octo-memory/TradeoffLens/src/main.tsx), which must be transformed by Vite in dev mode or compiled into `dist/` first.
 
 ## Test
 
@@ -41,6 +79,7 @@ npm test
 - [`src/data/demos.ts`](/Users/henry/friendly-octo-memory/TradeoffLens/src/data/demos.ts): built-in demo scenarios
 - [`src/utils/storage.ts`](/Users/henry/friendly-octo-memory/TradeoffLens/src/utils/storage.ts): local persistence
 - [`tests/scoring.test.ts`](/Users/henry/friendly-octo-memory/TradeoffLens/tests/scoring.test.ts): unit tests for core scoring behavior
+- [`/Users/henry/friendly-octo-memory/Makefile`](/Users/henry/friendly-octo-memory/Makefile): repo-root shortcuts for install, dev, build, and preview
 
 ## Scoring math
 
