@@ -14,6 +14,7 @@ Tradeoff Lens is a local-only browser tool for comparing options under explicit 
 - Persist the current scenario in `localStorage`
 - Import and export scenarios as JSON
 - Export an analysis summary as Markdown
+- Export stable artifact snapshots as `DecisionModel` and `RankedOptions`
 - Include built-in demo scenarios for cars, projects, TV shows, and engineering tools
 
 ## Run locally

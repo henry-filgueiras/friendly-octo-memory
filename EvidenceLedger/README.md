@@ -13,6 +13,7 @@ Evidence Ledger is a local-only browser tool for pressure-testing claims against
 - Persist the current ledger in `localStorage`
 - Import and export the scenario as JSON
 - Export a Markdown summary
+- Import `ClaimSet` artifacts to seed claims and export `EvidenceMap` artifacts for downstream handoff
 - Include built-in demos for incident review, onboarding hypotheses, and vendor migration risk
 - Include a guided walkthrough using the incident-review demo
 

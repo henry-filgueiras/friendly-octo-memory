@@ -86,6 +86,11 @@ export function HeroPanel({
               onChange={onImport}
             />
           </div>
+          <p className="panel-note">
+            Artifact outbox: export an <code>ExecutionPlan</code> snapshot for Artifact Lab or
+            downstream claim-seeding work. Threadline does not yet import stable artifacts back
+            into the planning model.
+          </p>
         </div>
       </div>
     </header>

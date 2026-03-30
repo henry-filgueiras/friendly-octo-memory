@@ -3,8 +3,10 @@ import type { LensDemoScenario } from "lens-core";
 import type { EvidenceScenario } from "../domain/types";
 
 interface HeroPanelProps {
+  artifactSourceLabel: string;
   demos: LensDemoScenario<EvidenceScenario>[];
   importInputRef: RefObject<HTMLInputElement>;
+  onExportEvidenceMapArtifact: () => void;
   onExportJson: () => void;
   onExportMarkdown: () => void;
   onImport: (event: ChangeEvent<HTMLInputElement>) => void | Promise<void>;
@@ -13,8 +15,10 @@ interface HeroPanelProps {
 }
 
 export function HeroPanel({
+  artifactSourceLabel,
   demos,
   importInputRef,
+  onExportEvidenceMapArtifact,
   onExportJson,
   onExportMarkdown,
   onImport,
@@ -63,6 +67,9 @@ export function HeroPanel({
             <button type="button" className="ghost-button" onClick={onExportJson}>
               Export JSON
             </button>
+            <button type="button" className="ghost-button" onClick={onExportEvidenceMapArtifact}>
+              Export EvidenceMap artifact
+            </button>
             <button type="button" className="ghost-button" onClick={onExportMarkdown}>
               Export Markdown
             </button>
@@ -80,6 +87,14 @@ export function HeroPanel({
               hidden
               onChange={onImport}
             />
+          </div>
+        </div>
+        <div className="hero-actions__block">
+          <p className="eyebrow">Artifact handoff</p>
+          <p className="panel-note">{artifactSourceLabel}</p>
+          <div className="pill-row">
+            <span className="pill">Inbox: ClaimSet</span>
+            <span className="pill">Outbox: EvidenceMap</span>
           </div>
         </div>
       </div>

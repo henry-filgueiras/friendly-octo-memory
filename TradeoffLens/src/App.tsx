@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { GuidedDemoOverlay, type GuidedDemoStep } from "./components/GuidedDemoOverlay";
 import { buildDemoScenarios } from "./data/demos";
+import { buildDecisionModelArtifact, buildRankedOptionsArtifact } from "./domain/artifacts";
 import { explainCandidate } from "./domain/explanations";
 import {
   clamp,
@@ -398,6 +399,20 @@ export default function App() {
     exportScenarioJson(`${slugify(scenario.name || "tradeoff-lens")}.json`, scenario);
   }
 
+  function handleExportDecisionModelArtifact() {
+    exportScenarioJson(
+      `${slugify(scenario.name || "tradeoff-lens")}.decision-model.artifact.json`,
+      buildDecisionModelArtifact(scenario, analysis, weightOverrides)
+    );
+  }
+
+  function handleExportRankedOptionsArtifact() {
+    exportScenarioJson(
+      `${slugify(scenario.name || "tradeoff-lens")}.ranked-options.artifact.json`,
+      buildRankedOptionsArtifact(scenario, analysis)
+    );
+  }
+
   function handleExportMarkdown() {
     downloadText(
       `${slugify(scenario.name || "tradeoff-lens")}.md`,
@@ -511,6 +526,45 @@ export default function App() {
           />
         </div>
       </header>
+
+      <section className="artifact-strip">
+        <div className="artifact-card">
+          <p className="section-label">Artifact Outbox</p>
+          <h2>Stable exports for downstream lenses</h2>
+          <p className="artifact-copy">
+            Export a compact decision snapshot or the current ranked outcome as stable artifacts.
+            This app still treats scenario JSON as the editable source of truth.
+          </p>
+          <div className="inline-actions">
+            <button
+              type="button"
+              className="button button-secondary"
+              onClick={handleExportDecisionModelArtifact}
+            >
+              Export DecisionModel
+            </button>
+            <button
+              type="button"
+              className="button button-secondary"
+              onClick={handleExportRankedOptionsArtifact}
+            >
+              Export RankedOptions
+            </button>
+          </div>
+        </div>
+        <div className="artifact-card">
+          <p className="section-label">Artifact Inbox</p>
+          <h2>Current support</h2>
+          <p className="artifact-copy">
+            Tradeoff Lens currently exports stable artifacts but does not yet seed scenarios from
+            them. Use Artifact Lab when you want to inspect or transform decision outputs.
+          </p>
+          <div className="badge-row">
+            <span className="badge">Source: local scenario / JSON import</span>
+            <span className="badge">Exports: DecisionModel, RankedOptions</span>
+          </div>
+        </div>
+      </section>
 
       <section className="demo-strip">
         <div>

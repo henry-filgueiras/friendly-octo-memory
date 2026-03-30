@@ -56,6 +56,7 @@ button {
 
 .topbar,
 .demo-strip,
+.artifact-strip,
 .panel {
   border: 1px solid var(--line);
   background: var(--bg-panel);
@@ -64,12 +65,29 @@ button {
 }
 
 .topbar,
-.demo-strip {
+.demo-strip,
+.artifact-strip {
   display: flex;
   justify-content: space-between;
   gap: 1rem;
   border-radius: 28px;
   padding: 1.2rem 1.3rem;
+}
+
+.artifact-strip {
+  align-items: stretch;
+}
+
+.artifact-card {
+  flex: 1;
+  display: grid;
+  gap: 0.7rem;
+}
+
+.artifact-copy {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.55;
 }
 
 .hero-copy h1,
@@ -656,10 +674,11 @@ button {
     grid-template-columns: 1fr;
   }
 
-  .topbar,
-  .demo-strip {
-    flex-direction: column;
-  }
+      .topbar,
+      .demo-strip,
+      .artifact-strip {
+        flex-direction: column;
+      }
 
   .topbar-actions {
     justify-items: start;

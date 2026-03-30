@@ -4,6 +4,7 @@ import { EditorPane } from "./components/EditorPane";
 import { GuidedDemoOverlay, type GuidedDemoStep } from "./components/GuidedDemoOverlay";
 import { HeroPanel } from "./components/HeroPanel";
 import { InspectorPane } from "./components/InspectorPane";
+import { buildEvidenceMapArtifact } from "./domain/artifacts";
 import { getDemoScenarios } from "./data/demos";
 import { buildClaimExplanation } from "./domain/explanations";
 import { isClaimSetArtifactEnvelope, seedScenarioFromClaimSetArtifact } from "./domain/imports";
@@ -17,6 +18,7 @@ import {
   readJsonFile,
   unwrapScenarioEnvelope,
 } from "lens-core";
+import type { LensArtifactEnvelope } from "lens-core";
 
 const DEMOS = getDemoScenarios();
 const GUIDED_DEMO_ID = "demo-incident";
@@ -55,6 +57,7 @@ export default function App() {
   const importInputRef = useRef<HTMLInputElement | null>(null);
   const analysisPaneRef = useRef<HTMLElement | null>(null);
   const [guidedDemoStepIndex, setGuidedDemoStepIndex] = useState<number | null>(null);
+  const [sourceArtifact, setSourceArtifact] = useState<LensArtifactEnvelope | null>(null);
   const {
     analysis,
     analysisView,
@@ -123,12 +126,14 @@ export default function App() {
 
       if (isClaimSetArtifactEnvelope(parsed)) {
         replaceScenario(seedScenarioFromClaimSetArtifact(parsed));
+        setSourceArtifact(parsed);
       } else {
         replaceScenario(
           syncScenario(
             unwrapScenarioEnvelope(parsed as EvidenceScenario | { scenario: EvidenceScenario })
           )
         );
+        setSourceArtifact(null);
       }
 
       setGuidedDemoStepIndex(null);
@@ -143,6 +148,13 @@ export default function App() {
     exportScenarioJson("evidence-ledger.json", scenario);
   }
 
+  function exportEvidenceMapArtifactJson() {
+    exportScenarioJson(
+      "evidence-ledger.evidence-map.artifact.json",
+      buildEvidenceMapArtifact(scenario, sourceArtifact)
+    );
+  }
+
   function exportMarkdown() {
     downloadText(
       "evidence-ledger-summary.md",
@@ -153,13 +165,21 @@ export default function App() {
 
   function handleLoadDemo(demoId: string) {
     loadDemoScenario(demoId);
+    setSourceArtifact(null);
     setGuidedDemoStepIndex(null);
   }
 
   function handleStartGuidedDemo() {
     loadDemoScenario(GUIDED_DEMO_ID);
+    setSourceArtifact(null);
     setGuidedDemoStepIndex(0);
   }
+
+  const artifactSourceLabel = sourceArtifact
+    ? `Current source artifact: ${sourceArtifact.kind} / ${sourceArtifact.title} from ${
+        sourceArtifact.provenance.sourceScenario?.app ?? sourceArtifact.provenance.producedBy.app
+      }.`
+    : "Current source artifact: none. This ledger is currently being edited as a local scenario.";
 
   function handleAdvanceGuidedDemo() {
     if (guidedDemoStepIndex === null) {
@@ -185,8 +205,10 @@ export default function App() {
   return (
     <div className="ledger-shell">
       <HeroPanel
+        artifactSourceLabel={artifactSourceLabel}
         demos={DEMOS}
         importInputRef={importInputRef}
+        onExportEvidenceMapArtifact={exportEvidenceMapArtifactJson}
         onExportJson={exportJson}
         onExportMarkdown={exportMarkdown}
         onImport={handleImport}
