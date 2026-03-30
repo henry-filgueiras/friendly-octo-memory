@@ -307,6 +307,14 @@ export default function App() {
     setDerivedArtifact(nextArtifact as WorkbenchArtifact);
   }
 
+  function handleUseNextStepFromTargetPath() {
+    if (!targetPath || targetPath.length === 0) {
+      return;
+    }
+
+    setSelectedTransformId(targetPath[0].id);
+  }
+
   return (
     <LensShell>
       <LensHero>
@@ -500,17 +508,29 @@ export default function App() {
               {targetArtifactKind ? (
                 targetPath ? (
                   targetPath.length > 0 ? (
-                    <div className="path-strip" aria-label="Transform path to target artifact">
-                      <div className="path-chip">{currentArtifact.kind}</div>
-                      {targetPath.map((transform) => (
-                        <div key={transform.id} className="path-step">
-                          <div className="path-arrow">→</div>
-                          <div className="path-chip path-chip--transform">{transform.name}</div>
-                          <div className="path-arrow">→</div>
-                          <div className="path-chip">{transform.outputKind}</div>
-                        </div>
-                      ))}
-                    </div>
+                    <>
+                      <div className="path-strip" aria-label="Transform path to target artifact">
+                        <div className="path-chip">{currentArtifact.kind}</div>
+                        {targetPath.map((transform) => (
+                          <div key={transform.id} className="path-step">
+                            <div className="path-arrow">→</div>
+                            <div className="path-chip path-chip--transform">{transform.name}</div>
+                            <div className="path-arrow">→</div>
+                            <div className="path-chip">{transform.outputKind}</div>
+                          </div>
+                        ))}
+                      </div>
+                      <button
+                        type="button"
+                        className="workbench-button workbench-button--subtle"
+                        onClick={handleUseNextStepFromTargetPath}
+                      >
+                        <strong>Use next step toward target</strong>
+                        <span>
+                          Select <code>{targetPath[0].name}</code> as the next manual transform.
+                        </span>
+                      </button>
+                    </>
                   ) : (
                     <p className="workbench-note">
                       The current artifact is already a <code>{targetArtifactKind}</code>.

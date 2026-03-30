@@ -17,6 +17,8 @@ This is intentionally manual and inspectable. The point is to make the handoff l
 
 Artifact Lab now also shows a simple path-to-target preview for registered transforms. That preview is only discovery help. Execution is still manual, one transform click per step.
 
+There is also a small `Use next step toward target` helper in the lab. It only preselects the first transform in the visible path; it does not run anything for you.
+
 ## Transform limitations
 
 `execution-plan-to-claim-set` is deliberately narrow.
