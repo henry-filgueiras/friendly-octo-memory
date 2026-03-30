@@ -3,6 +3,7 @@ import {
   appendArtifactLabRunEvent,
   createArtifactLabRunJournal,
   createForkedArtifactLabRunJournal,
+  getArtifactLabCheckpoints,
   getArtifactLabCheckpointMap,
   replayArtifactLabRunJournal,
 } from "../src/runJournal";
@@ -150,6 +151,12 @@ describe("Artifact Lab checkpoints and forks", () => {
     expect(getArtifactLabCheckpointMap(withCheckpoint)).toEqual({
       "event-1": ["Clean execution plan"],
     });
+    expect(getArtifactLabCheckpoints(withCheckpoint)).toEqual([
+      {
+        eventId: "event-1",
+        labels: ["Clean execution plan"],
+      },
+    ]);
     expect(fork.forkedFrom).toEqual({
       sessionId: withCheckpoint.sessionId,
       eventId: "event-1",

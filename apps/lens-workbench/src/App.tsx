@@ -232,6 +232,14 @@ export default function App() {
     () => runJournal.events.map(formatArtifactLabRunEvent),
     [runJournal]
   );
+  const knownSessions = useMemo(
+    () =>
+      knownRunJournals.map((journal) => ({
+        journal,
+        replayed: replayArtifactLabRunJournal(journal),
+      })),
+    [knownRunJournals]
+  );
   const checkpointMap = useMemo(() => getArtifactLabCheckpointMap(runJournal), [runJournal]);
   const comparisonCandidates = useMemo(
     () => knownRunJournals.filter((journal) => journal.sessionId !== runJournal.sessionId),
@@ -464,6 +472,25 @@ export default function App() {
     }
   }
 
+  function handleSwitchSession(sessionId: string) {
+    const nextJournal = knownRunJournals.find((journal) => journal.sessionId === sessionId);
+
+    if (!nextJournal) {
+      return;
+    }
+
+    const replayed = replayArtifactLabRunJournal(nextJournal);
+    setCurrentSessionId(sessionId);
+    setComparisonSessionId(nextJournal.forkedFrom?.sessionId ?? "");
+
+    if (replayed.activeRecipeId) {
+      const recipe = getLensRecipe(replayed.activeRecipeId);
+      setTargetArtifactKind(recipe?.targetKind ?? "");
+    } else {
+      setTargetArtifactKind("");
+    }
+  }
+
   return (
     <LensShell>
       <LensHero>
@@ -557,6 +584,72 @@ export default function App() {
       </LensHero>
 
       <main className={lensShellClasses.workspace}>
+        <LensPanel>
+          <div className={lensShellClasses.panelHeader}>
+            <div>
+              <p className={lensShellClasses.eyebrow}>Run Browser</p>
+              <h2>Known local sessions</h2>
+            </div>
+            <LensStatGrid>
+              <div className={lensShellClasses.statCard}>
+                <span>Current session</span>
+                <strong>{runJournal.sessionId}</strong>
+              </div>
+              <div className={lensShellClasses.statCard}>
+                <span>Known runs</span>
+                <strong>{knownRunJournals.length}</strong>
+              </div>
+            </LensStatGrid>
+          </div>
+
+          <div className="workbench-stack">
+            <div className="workbench-card">
+              <p className={lensShellClasses.eyebrow}>Current branch head</p>
+              <p className="workbench-note">
+                {currentArtifact.kind}: {currentArtifact.title}
+              </p>
+              <p className="workbench-note">
+                Parent / origin:{" "}
+                {runJournal.forkedFrom
+                  ? `${runJournal.forkedFrom.sessionId} at ${runJournal.forkedFrom.eventId}${
+                      runJournal.forkedFrom.checkpointLabel
+                        ? ` (${runJournal.forkedFrom.checkpointLabel})`
+                        : ""
+                    }`
+                  : "Root session"}
+              </p>
+            </div>
+
+            <div className="run-browser-grid">
+              {knownSessions.map(({ journal, replayed }) => (
+                <button
+                  key={journal.sessionId}
+                  type="button"
+                  className={`run-browser-card ${
+                    journal.sessionId === runJournal.sessionId ? "run-browser-card--active" : ""
+                  }`}
+                  onClick={() => handleSwitchSession(journal.sessionId)}
+                >
+                  <span className={lensShellClasses.eyebrow}>Session</span>
+                  <strong>{journal.sessionId}</strong>
+                  <span className="workbench-note">
+                    {replayed.currentArtifact
+                      ? `${replayed.currentArtifact.kind}: ${replayed.currentArtifact.title}`
+                      : "No current artifact"}
+                  </span>
+                  <span className="workbench-note">Events: {journal.events.length}</span>
+                  <span className="workbench-note">
+                    Origin:{" "}
+                    {journal.forkedFrom
+                      ? `${journal.forkedFrom.sessionId} / ${journal.forkedFrom.eventId}`
+                      : "Root"}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </LensPanel>
+
         <LensPanel>
           <div className={lensShellClasses.panelHeader}>
             <div>
@@ -1172,6 +1265,12 @@ export default function App() {
                       <p className="workbench-note">
                         {currentArtifact.kind}: {currentArtifact.title}
                       </p>
+                      <p className="workbench-note">
+                        Origin:{" "}
+                        {runJournal.forkedFrom
+                          ? `${runJournal.forkedFrom.sessionId} / ${runJournal.forkedFrom.eventId}`
+                          : "Root"}
+                      </p>
                       <ul className="workbench-list">
                         <li>
                           Recipe: {activeRecipe?.label ?? "None"} / {projected.completedRecipeSteps} steps
@@ -1190,6 +1289,12 @@ export default function App() {
                         {comparisonProjected.currentArtifact
                           ? `${comparisonProjected.currentArtifact.kind}: ${comparisonProjected.currentArtifact.title}`
                           : "No current artifact"}
+                      </p>
+                      <p className="workbench-note">
+                        Origin:{" "}
+                        {comparisonJournal.forkedFrom
+                          ? `${comparisonJournal.forkedFrom.sessionId} / ${comparisonJournal.forkedFrom.eventId}`
+                          : "Root"}
                       </p>
                       <ul className="workbench-list">
                         <li>
