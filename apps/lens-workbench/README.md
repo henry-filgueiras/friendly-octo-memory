@@ -15,6 +15,15 @@ The current real cross-lens path is:
 
 This is intentionally manual and inspectable. The point is to make the handoff legible before any future workflow runner exists.
 
+## Transform limitations
+
+`execution-plan-to-claim-set` is deliberately narrow.
+
+- It does not convert every task into a claim.
+- It only projects non-done tasks that are schedule-critical or carrying explicit deadline pressure.
+- It carries task notes and constraint text forward, but it does not infer evidence, sources, or verdicts.
+- The imported `EvidenceLedger` scenario is just a seed that still needs human curation.
+
 ## Run locally
 
 ```bash

@@ -192,6 +192,21 @@ function createArtifactId(kind: LensArtifactKind): string {
   return `artifact-${kind.toLowerCase()}-${Date.now()}`;
 }
 
+function buildLineageLabel(
+  transform: LensTransform<LensArtifactKind, LensArtifactKind> | undefined,
+  derivedArtifact: WorkbenchArtifact | null
+): string {
+  if (!transform) {
+    return "Choose a compatible transform";
+  }
+
+  if (!derivedArtifact) {
+    return `${transform.inputKind} -> ${transform.outputKind}`;
+  }
+
+  return `${transform.inputKind} -> ${transform.outputKind} -> ${derivedArtifact.kind}`;
+}
+
 export default function App() {
   const importRef = useRef<HTMLInputElement | null>(null);
   const [currentArtifact, setCurrentArtifact] = useState<WorkbenchArtifact>(
@@ -394,6 +409,29 @@ export default function App() {
           </div>
 
           <div className="workbench-stack">
+            <div className="workbench-card">
+              <p className={lensShellClasses.eyebrow}>Lineage chain</p>
+              <div className="lineage-strip" aria-label="Artifact transform lineage">
+                <div className="lineage-node">
+                  <span className="lineage-node__label">Current artifact</span>
+                  <strong>{currentArtifact.kind}</strong>
+                  <small>{currentArtifact.title}</small>
+                </div>
+                <div className="lineage-arrow">→</div>
+                <div className="lineage-node lineage-node--transform">
+                  <span className="lineage-node__label">Selected transform</span>
+                  <strong>{selectedTransform?.name ?? "None selected"}</strong>
+                  <small>{buildLineageLabel(selectedTransform, derivedArtifact)}</small>
+                </div>
+                <div className="lineage-arrow">→</div>
+                <div className="lineage-node">
+                  <span className="lineage-node__label">Derived artifact</span>
+                  <strong>{derivedArtifact?.kind ?? "Pending"}</strong>
+                  <small>{derivedArtifact?.title ?? "Apply the transform to derive output"}</small>
+                </div>
+              </div>
+            </div>
+
             {compatibleTransforms.length === 0 ? (
               <div className="workbench-card">
                 <p className="workbench-note">

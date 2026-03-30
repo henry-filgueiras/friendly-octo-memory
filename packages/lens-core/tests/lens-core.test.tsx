@@ -181,7 +181,7 @@ describe("lens-core", () => {
     expect(ranked.provenance.sourceArtifacts[0]?.id).toBe("artifact-decision");
   });
 
-  it("seeds an evidence map artifact from a claim set artifact", () => {
+  it("seeds an evidence map artifact from a claim set artifact and carries provenance forward", () => {
     const evidenceMap = claimSetToEvidenceMapSeedTransform.run(
       {
         id: "artifact-claims",
@@ -212,9 +212,10 @@ describe("lens-core", () => {
     expect(evidenceMap.payload.links).toEqual([]);
     expect(evidenceMap.provenance.producedBy.transformId).toBe("claim-set-to-evidence-map-seed");
     expect(evidenceMap.provenance.sourceArtifacts[0]?.id).toBe("artifact-claims");
+    expect(evidenceMap.provenance.sourceScenario?.app).toBe("Threadline");
   });
 
-  it("projects only critical or deadline-pressured tasks from an execution plan into claims", () => {
+  it("projects only critical or deadline-pressured non-done tasks from an execution plan into claims", () => {
     const claimSet = executionPlanToClaimSetTransform.run(
       {
         id: "artifact-plan",
@@ -240,9 +241,25 @@ describe("lens-core", () => {
               id: "deadline",
               name: "Deadline task",
               status: "todo",
-              notes: "",
+              notes: "Still waiting on dry run feedback.",
               critical: false,
               constraintIssues: ["Must finish before day 10."],
+            },
+            {
+              id: "critical-deadline",
+              name: "Critical deadline task",
+              status: "active",
+              notes: "Both critical and constrained.",
+              critical: true,
+              constraintIssues: ["Must finish before day 8."],
+            },
+            {
+              id: "ordinary",
+              name: "Ordinary task",
+              status: "todo",
+              notes: "",
+              critical: false,
+              constraintIssues: [],
             },
             {
               id: "done",
@@ -268,13 +285,21 @@ describe("lens-core", () => {
     );
 
     expect(claimSet.kind).toBe("ClaimSet");
-    expect(claimSet.payload.claims).toHaveLength(2);
+    expect(claimSet.payload.claims).toHaveLength(3);
     expect(claimSet.payload.claims.map((claim) => claim.id)).toEqual([
       "claim-critical",
       "claim-deadline",
+      "claim-critical-deadline",
     ]);
+    expect(claimSet.payload.claims[0]?.statement).toContain("schedule-critical");
+    expect(claimSet.payload.claims[1]?.statement).toContain("deadline pressure");
     expect(claimSet.payload.claims[1]?.notes).toContain("Must finish before day 10.");
+    expect(claimSet.payload.claims[1]?.notes).toContain("Still waiting on dry run feedback.");
+    expect(claimSet.payload.claims[2]?.category).toBe("Critical deadline pressure");
+    expect(claimSet.payload.claims.some((claim) => claim.id === "claim-ordinary")).toBe(false);
+    expect(claimSet.payload.claims.some((claim) => claim.id === "claim-done")).toBe(false);
     expect(claimSet.provenance.producedBy.transformId).toBe("execution-plan-to-claim-set");
     expect(claimSet.provenance.sourceArtifacts[0]?.id).toBe("artifact-plan");
+    expect(claimSet.provenance.sourceScenario?.app).toBe("Threadline");
   });
 });
