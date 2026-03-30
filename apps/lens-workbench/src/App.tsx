@@ -260,6 +260,11 @@ export default function App() {
           </div>
           <div className="workbench-card">
             {inspectorExplanation ? <p className="workbench-note">{inspectorExplanation}</p> : null}
+            <p className="workbench-note">
+              Real handoff path: <code>ExecutionPlan</code> from <code>Threadline</code> flows
+              through <code>execution-plan-to-claim-set</code> into a <code>ClaimSet</code>,
+              which can seed <code>EvidenceLedger</code>.
+            </p>
             <ul className="workbench-list">
               <li>`TradeoffLens` needs ranking, frontier, and sensitivity semantics.</li>
               <li>`Threadline` needs dependency, capacity, and slip-propagation semantics.</li>

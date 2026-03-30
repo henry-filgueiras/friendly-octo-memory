@@ -8,6 +8,7 @@ import {
   LensStatGrid,
   claimSetToEvidenceMapSeedTransform,
   decisionModelToRankedOptionsTransform,
+  executionPlanToClaimSetTransform,
   exportScenarioJson,
   getLensArtifactDefinition,
   loadLocalScenario,
@@ -209,5 +210,67 @@ describe("lens-core", () => {
     expect(evidenceMap.payload.claims).toHaveLength(1);
     expect(evidenceMap.payload.sources).toEqual([]);
     expect(evidenceMap.payload.links).toEqual([]);
+  });
+
+  it("projects only critical or deadline-pressured tasks from an execution plan into claims", () => {
+    const claimSet = executionPlanToClaimSetTransform.run(
+      {
+        id: "artifact-plan",
+        kind: "ExecutionPlan",
+        schemaVersion: 1,
+        title: "Launch execution plan",
+        createdAt: "2026-03-30T00:00:00.000Z",
+        payload: {
+          subject: "Launch",
+          deadlineDay: 20,
+          projectFinishDay: 19,
+          deadlineMissDays: 0,
+          tasks: [
+            {
+              id: "critical",
+              name: "Critical task",
+              status: "active",
+              notes: "Needs close coordination.",
+              critical: true,
+              constraintIssues: [],
+            },
+            {
+              id: "deadline",
+              name: "Deadline task",
+              status: "todo",
+              notes: "",
+              critical: false,
+              constraintIssues: ["Must finish before day 10."],
+            },
+            {
+              id: "done",
+              name: "Done task",
+              status: "done",
+              notes: "",
+              critical: true,
+              constraintIssues: ["Old issue."],
+            },
+          ],
+        },
+        provenance: {
+          producedBy: { app: "Threadline" },
+          sourceArtifacts: [],
+          sourceScenario: { app: "Threadline", scenarioId: "scenario-1" },
+        },
+      },
+      {
+        artifactId: "artifact-claims",
+        createdAt: "2026-03-30T00:30:00.000Z",
+        producedByApp: "lens-workbench",
+      }
+    );
+
+    expect(claimSet.kind).toBe("ClaimSet");
+    expect(claimSet.payload.claims).toHaveLength(2);
+    expect(claimSet.payload.claims.map((claim) => claim.id)).toEqual([
+      "claim-critical",
+      "claim-deadline",
+    ]);
+    expect(claimSet.payload.claims[1]?.notes).toContain("Must finish before day 10.");
   });
 });

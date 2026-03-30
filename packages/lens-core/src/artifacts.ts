@@ -48,11 +48,15 @@ export interface RankedOptionsArtifact {
 export interface ExecutionPlanArtifact {
   subject: string;
   deadlineDay?: number | null;
+  projectFinishDay: number;
+  deadlineMissDays: number;
   tasks: Array<{
     id: string;
     name: string;
-    status: "todo" | "active" | "done";
+    status: "todo" | "active" | "blocked" | "done";
     notes?: string;
+    critical: boolean;
+    constraintIssues: string[];
   }>;
 }
 

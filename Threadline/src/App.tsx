@@ -5,6 +5,7 @@ import { GuidedDemoOverlay, type GuidedDemoStep } from "./components/GuidedDemoO
 import { HeroPanel } from "./components/HeroPanel";
 import { InspectorPane } from "./components/InspectorPane";
 import { getDemoScenarios } from "./data/demos";
+import { buildExecutionPlanArtifact } from "./domain/artifacts";
 import { buildTaskExplanation } from "./domain/explanations";
 import { buildMarkdownSummary } from "./domain/markdown";
 import { syncScenario } from "./domain/helpers";
@@ -131,6 +132,13 @@ export default function App() {
     exportScenarioJson("threadline-scenario.json", scenario);
   }
 
+  function exportExecutionPlanArtifactJson() {
+    exportScenarioJson(
+      "threadline-execution-plan.artifact.json",
+      buildExecutionPlanArtifact(scenario, analysis)
+    );
+  }
+
   function exportMarkdown() {
     downloadText(
       "threadline-summary.md",
@@ -187,6 +195,7 @@ export default function App() {
       <HeroPanel
         demos={DEMOS}
         importInputRef={importInputRef}
+        onExportExecutionPlanArtifact={exportExecutionPlanArtifactJson}
         onExportJson={exportJson}
         onExportMarkdown={exportMarkdown}
         onImport={handleImport}

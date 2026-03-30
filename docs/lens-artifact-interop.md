@@ -269,6 +269,33 @@ This lets us compose workflows without coercing every tool into a fake universal
 
 These are output-oriented nouns, not scenario schemas.
 
+## Concrete handoff: `ExecutionPlan -> ClaimSet -> EvidenceLedger`
+
+The first real cross-lens path should stay intentionally narrow:
+
+1. `Threadline` exports a compact `ExecutionPlan` artifact
+2. `lens-core` applies `execution-plan-to-claim-set`
+3. `EvidenceLedger` imports the `ClaimSet` artifact and seeds a ledger with claims only
+
+### Transform assumptions
+
+`execution-plan-to-claim-set` does not treat every task as a claim.
+
+It projects a claim only when a task is:
+
+- not already done, and
+- schedule-critical, or
+- under explicit deadline pressure via constraint issues
+
+The transform emits one claim per projected task and carries task notes plus constraint text forward as claim notes.
+
+### Limitations
+
+- it is a planning-pressure projection, not a universal truth extractor
+- it does not infer evidence, sources, or verdicts
+- it does not try to translate every task into a claim-worthy statement
+- the resulting `EvidenceLedger` scenario is only a seed and still needs human curation
+
 ## What this intentionally does not solve yet
 
 - cross-tool live editing

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { buildExecutionPlanArtifact } from "../src/domain/artifacts";
 import { analyzeScenario, getTaskDuration } from "../src/domain/planning";
 import { syncScenario } from "../src/domain/helpers";
 import type { ThreadlineScenario } from "../src/domain/types";
@@ -236,5 +237,18 @@ describe("analyzeScenario", () => {
 
     expect(analysis.riskHotspots.some((entry) => entry.taskId === "done-task")).toBe(false);
     expect(analysis.riskHotspots[0]?.taskId).toBe("active-task");
+  });
+
+  it("exports a compact execution plan artifact with scenario provenance", () => {
+    const scenario = createScenario();
+    const analysis = analyzeScenario(scenario);
+    const artifact = buildExecutionPlanArtifact(scenario, analysis);
+
+    expect(artifact.kind).toBe("ExecutionPlan");
+    expect(artifact.payload.subject).toBe("Capacity test");
+    expect(artifact.payload.projectFinishDay).toBe(analysis.projectFinishDay);
+    expect(artifact.payload.tasks[0]?.id).toBe("a");
+    expect(artifact.payload.tasks[0]?.critical).toBe(true);
+    expect(artifact.provenance.sourceScenario?.scenarioId).toBe("scenario-test");
   });
 });

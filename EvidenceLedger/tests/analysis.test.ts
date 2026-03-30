@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { seedScenarioFromClaimSetArtifact } from "../src/domain/imports";
 import { analyzeScenario, calculateEvidencePoints } from "../src/domain/analysis";
 import { buildClaimExplanation } from "../src/domain/explanations";
 import { syncScenario } from "../src/domain/helpers";
@@ -25,6 +26,45 @@ describe("calculateEvidencePoints", () => {
 });
 
 describe("analyzeScenario", () => {
+  it("seeds a clean ledger scenario from a claim-set artifact", () => {
+    const seeded = seedScenarioFromClaimSetArtifact({
+      id: "artifact-claims",
+      kind: "ClaimSet",
+      schemaVersion: 1,
+      title: "Launch pressure claims",
+      createdAt: "2026-03-30T00:00:00.000Z",
+      payload: {
+        subject: "Launch pressure claims",
+        claims: [
+          {
+            id: "claim-1",
+            statement: "Billing guardrails are schedule-critical.",
+            category: "Critical path",
+            notes: "Imported from plan pressure.",
+          },
+        ],
+      },
+      provenance: {
+        producedBy: {
+          app: "lens-core",
+          transformId: "execution-plan-to-claim-set",
+        },
+        sourceArtifacts: [{ id: "artifact-plan", kind: "ExecutionPlan", title: "Launch plan" }],
+        sourceScenario: {
+          app: "Threadline",
+          scenarioId: "scenario-plan",
+          scenarioName: "Launch a private beta",
+        },
+      },
+    });
+
+    expect(seeded.claims).toHaveLength(1);
+    expect(seeded.sources).toEqual([]);
+    expect(seeded.links).toEqual([]);
+    expect(seeded.description).toContain("ClaimSet artifact");
+    expect(seeded.description).toContain("Threadline");
+  });
+
   it("classifies strongly supported claims", () => {
     const scenario = createScenario({
       claims: [{ id: "claim", statement: "Claim", category: "Test", importance: 5, notes: "" }],
