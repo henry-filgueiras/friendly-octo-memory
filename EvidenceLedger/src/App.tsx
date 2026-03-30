@@ -10,7 +10,12 @@ import { syncScenario } from "./domain/helpers";
 import { buildMarkdownSummary } from "./domain/markdown";
 import type { EvidenceScenario } from "./domain/types";
 import { useEvidenceScenarioState } from "./hooks/useEvidenceScenarioState";
-import { downloadText } from "./utils/download";
+import {
+  downloadText,
+  exportScenarioJson,
+  readJsonFile,
+  unwrapScenarioEnvelope,
+} from "lens-core";
 
 const DEMOS = getDemoScenarios();
 const GUIDED_DEMO_ID = "demo-incident";
@@ -113,9 +118,8 @@ export default function App() {
     }
 
     try {
-      const text = await file.text();
-      const parsed = JSON.parse(text) as EvidenceScenario | { scenario: EvidenceScenario };
-      replaceScenario(syncScenario("scenario" in parsed ? parsed.scenario : parsed));
+      const parsed = await readJsonFile<EvidenceScenario | { scenario: EvidenceScenario }>(file);
+      replaceScenario(syncScenario(unwrapScenarioEnvelope(parsed)));
       setGuidedDemoStepIndex(null);
     } catch {
       window.alert("Could not import that JSON file.");
@@ -125,11 +129,7 @@ export default function App() {
   }
 
   function exportJson() {
-    downloadText(
-      "evidence-ledger.json",
-      JSON.stringify(scenario, null, 2),
-      "application/json"
-    );
+    exportScenarioJson("evidence-ledger.json", scenario);
   }
 
   function exportMarkdown() {
