@@ -4,6 +4,8 @@
 
 It intentionally does **not** contain a generic engine or workflow runner. It is an operator bench for the shared shell, artifact envelopes, and explicit transforms.
 
+Artifact Lab now persists a full local workspace bundle. That bundle includes known run journals, forks, the active session, head-comparison state, and the current target artifact kind.
+
 ## Manual artifact flow
 
 The current real cross-lens path is:
@@ -32,6 +34,21 @@ The first named recipe is:
 
 - `ExecutionPlan -> ClaimSet -> EvidenceMap`
 
+## Runs, forks, and workspace persistence
+
+- Run journals record one append-only manual session.
+- Forks create a new run journal from an earlier replay point and preserve fork ancestry.
+- Head comparison lets you compare the current run head against another known local run.
+- Workspace persistence stores the whole local operator state in `localStorage`, not just one run.
+
+Artifact Lab now distinguishes three different import/export surfaces:
+
+- Artifact import/export: one artifact envelope such as `ExecutionPlan`, `ClaimSet`, or `EvidenceMap`
+- Run-journal import/export: one append-only session transcript
+- Workspace import/export: the full local workspace bundle, including known runs, current session, comparison state, and target selection
+
+Workspace import replaces the current local Artifact Lab workspace after shape validation. Run-journal import keeps the current workspace and adds or updates one known session inside it.
+
 ## Transform limitations
 
 `execution-plan-to-claim-set` is deliberately narrow.
@@ -47,4 +64,11 @@ The first named recipe is:
 cd apps/lens-workbench
 npm install
 npm run dev
+```
+
+## Test
+
+```bash
+cd apps/lens-workbench
+npm test
 ```
