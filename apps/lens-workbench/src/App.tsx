@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { LensDemoScenario } from "lens-core";
+import type { LensDemoScenario, LensRuntime } from "lens-core";
 import {
   LensHero,
   LensPanel,
@@ -18,6 +18,11 @@ interface WorkbenchScenario {
   name: string;
   description: string;
   entities: Array<{ id: string; name: string; signal: string }>;
+}
+
+interface WorkbenchAnalysis {
+  entityCount: number;
+  entities: WorkbenchScenario["entities"];
 }
 
 const DEMOS: LensDemoScenario<WorkbenchScenario>[] = [
@@ -55,29 +60,64 @@ const DEMOS: LensDemoScenario<WorkbenchScenario>[] = [
 
 const STORAGE_KEY = "lens-workbench.scenario.v1";
 
-function createEmptyWorkbenchScenario(): WorkbenchScenario {
-  return DEMOS[0].scenario;
-}
+const workbenchRuntime: LensRuntime<WorkbenchScenario, WorkbenchAnalysis, string> = {
+  createEmptyScenario() {
+    return DEMOS[0].scenario;
+  },
+  normalizeScenario(scenario) {
+    return {
+      ...scenario,
+      entities: [...scenario.entities],
+    };
+  },
+  analyzeScenario(scenario) {
+    return {
+      entityCount: scenario.entities.length,
+      entities: [...scenario.entities],
+    };
+  },
+  exportMarkdown({ scenario, analysis }) {
+    return [
+      `# ${scenario.name}`,
+      "",
+      scenario.description,
+      "",
+      `Entities: ${analysis.entityCount}`,
+    ].join("\n");
+  },
+  explainSelection({ analysis, selectedId }) {
+    const entity = analysis.entities.find((entry) => entry.id === selectedId);
 
-function syncWorkbenchScenario(scenario: WorkbenchScenario): WorkbenchScenario {
-  return {
-    ...scenario,
-    entities: [...scenario.entities],
-  };
-}
+    if (!entity) {
+      return null;
+    }
+
+    return `${entity.name}: ${entity.signal}`;
+  },
+};
 
 export default function App() {
   const importRef = useRef<HTMLInputElement | null>(null);
   const [scenario, setScenario] = useState<WorkbenchScenario>(() =>
     loadLocalScenario({
-      createEmpty: createEmptyWorkbenchScenario,
+      createEmpty: workbenchRuntime.createEmptyScenario,
       storageKey: STORAGE_KEY,
-      sync: syncWorkbenchScenario,
+      sync: workbenchRuntime.normalizeScenario,
     })
   );
+  const analysis = useMemo(() => workbenchRuntime.analyzeScenario(scenario), [scenario]);
   const selectedDemo = useMemo(
     () => DEMOS.find((demo) => demo.scenario.id === scenario.id) ?? DEMOS[0],
     [scenario.id]
+  );
+  const inspectorExplanation = useMemo(
+    () =>
+      workbenchRuntime.explainSelection({
+        scenario,
+        analysis,
+        selectedId: analysis.entities[0]?.id ?? null,
+      }),
+    [analysis, scenario]
   );
 
   useEffect(() => {
@@ -90,7 +130,7 @@ export default function App() {
     }
 
     const parsed = await readJsonFile<WorkbenchScenario | { scenario: WorkbenchScenario }>(file);
-    setScenario(syncWorkbenchScenario(unwrapScenarioEnvelope(parsed)));
+    setScenario(workbenchRuntime.normalizeScenario(unwrapScenarioEnvelope(parsed)));
   }
 
   return (
@@ -120,7 +160,7 @@ export default function App() {
                   className={`workbench-button ${
                     demo.id === selectedDemo.id ? "workbench-button--active" : ""
                   }`}
-                  onClick={() => setScenario(syncWorkbenchScenario(demo.scenario))}
+                  onClick={() => setScenario(workbenchRuntime.normalizeScenario(demo.scenario))}
                 >
                   <strong>{demo.label}</strong>
                   <span>{demo.description}</span>
@@ -196,12 +236,12 @@ export default function App() {
               </div>
               <div className={lensShellClasses.statCard}>
                 <span>Entities</span>
-                <strong>{scenario.entities.length}</strong>
+                <strong>{analysis.entityCount}</strong>
               </div>
             </LensStatGrid>
           </div>
           <div className="workbench-stack">
-            {scenario.entities.map((entity) => (
+            {analysis.entities.map((entity) => (
               <article key={entity.id} className="workbench-entity">
                 <p className={lensShellClasses.eyebrow}>Pane role</p>
                 <h3>{entity.name}</h3>
@@ -219,6 +259,7 @@ export default function App() {
             </div>
           </div>
           <div className="workbench-card">
+            {inspectorExplanation ? <p className="workbench-note">{inspectorExplanation}</p> : null}
             <ul className="workbench-list">
               <li>`TradeoffLens` needs ranking, frontier, and sensitivity semantics.</li>
               <li>`Threadline` needs dependency, capacity, and slip-propagation semantics.</li>
