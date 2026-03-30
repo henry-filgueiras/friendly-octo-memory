@@ -64,9 +64,27 @@ More detail lives in `TradeoffLens/README.md`.
 
 ## Also in this repo
 
+### Threadline
+
+Threadline is the repo's planning instrument: a local-only tool for turning complicated work into an executable plan across tasks, dependencies, capacity, and uncertainty.
+
+- Local-only browser app
+- Deterministic schedule engine with critical-path and slip-impact analysis
+- Timeline, dependency map, diagnostics, and scenario-diff views
+
+![Threadline storyboard](Threadline/storyboard/threadline-storyboard.png)
+
+Quick start:
+
+```bash
+make threadline-dev
+```
+
+More detail lives in `Threadline/README.md`.
+
 ### Local Distillery
 
-Local Distillery is the repo's second product: a local-only text distiller for turning rough notes, transcripts, specs, logs, and research into a compact working artifact.
+Local Distillery is the repo's text-distillation tool: a local-only way to turn rough notes, transcripts, specs, logs, and research into a compact working artifact.
 
 - Local-only browser app
 - Deterministic heuristics, not opaque summarization
@@ -86,6 +104,8 @@ More detail lives in `LocalDistillery/README.md`.
 
 - `TradeoffLens`: main decision-analysis app
 - `TradeoffLens/storyboard/tradeoff-lens-storyboard.png`: product walkthrough graphic
+- `Threadline`: planning and execution-mapping app
+- `Threadline/storyboard/threadline-storyboard.png`: Threadline walkthrough graphic
 - `LocalDistillery`: secondary text-distillation app
 - `LocalDistillery/storyboard/local-distillery-storyboard.png`: Local Distillery walkthrough graphic
-- `Makefile`: repo-root shortcuts for both apps
+- `Makefile`: repo-root shortcuts for all three apps

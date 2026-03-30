@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Threadline storyboard</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: "IBM Plex Sans", "Avenir Next", sans-serif;
+        background:
+          radial-gradient(circle at top left, rgba(92, 198, 192, 0.12), transparent 24%),
+          radial-gradient(circle at top right, rgba(225, 132, 59, 0.18), transparent 28%),
+          linear-gradient(180deg, #f5efe3 0%, #efe4d2 100%);
+        color: #2c2118;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: inherit;
+      }
+
+      main {
+        width: 1500px;
+        margin: 0 auto;
+        padding: 24px;
+        display: grid;
+        gap: 18px;
+      }
+
+      .hero,
+      .card {
+        border-radius: 28px;
+        background: rgba(255, 252, 245, 0.82);
+        border: 1px solid rgba(61, 42, 28, 0.08);
+        box-shadow: 0 20px 50px rgba(61, 42, 28, 0.08);
+      }
+
+      .hero {
+        display: grid;
+        grid-template-columns: 1.4fr 0.8fr;
+        gap: 18px;
+        padding: 22px 24px;
+      }
+
+      .eyebrow {
+        margin: 0 0 8px;
+        font-size: 11px;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: #9d6c2d;
+      }
+
+      h1,
+      h2,
+      p {
+        margin-top: 0;
+      }
+
+      h1 {
+        margin-bottom: 10px;
+        font-size: 54px;
+        line-height: 0.98;
+      }
+
+      h2 {
+        margin-bottom: 10px;
+        font-size: 30px;
+        line-height: 1.05;
+      }
+
+      .lede {
+        font-size: 20px;
+        line-height: 1.5;
+        color: rgba(44, 33, 24, 0.8);
+      }
+
+      .pill-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .pill {
+        padding: 7px 12px;
+        border-radius: 999px;
+        background: rgba(44, 33, 24, 0.05);
+        border: 1px solid rgba(44, 33, 24, 0.08);
+        font-size: 13px;
+      }
+
+      .how {
+        display: grid;
+        gap: 10px;
+      }
+
+      .how-step {
+        padding: 12px 14px;
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.65);
+        border: 1px solid rgba(44, 33, 24, 0.08);
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px;
+      }
+
+      .card {
+        padding: 16px;
+      }
+
+      .frame {
+        position: relative;
+        overflow: hidden;
+        border-radius: 22px;
+        border: 1px solid rgba(44, 33, 24, 0.08);
+        background: #12181d;
+        margin-top: 12px;
+      }
+
+      .frame img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+
+      .frame--hero {
+        height: 300px;
+      }
+
+      .frame--timeline {
+        height: 330px;
+      }
+
+      .frame--diagnostics {
+        height: 330px;
+      }
+
+      .frame--dependencies {
+        height: 330px;
+      }
+
+      .frame--scenarios {
+        height: 330px;
+      }
+
+      .frame--timeline img {
+        object-position: center 34%;
+      }
+
+      .frame--diagnostics img {
+        object-position: center 38%;
+      }
+
+      .frame--dependencies img {
+        object-position: center 40%;
+      }
+
+      .frame--scenarios img {
+        object-position: center 40%;
+      }
+
+      .callout {
+        position: absolute;
+        max-width: 280px;
+        padding: 10px 12px;
+        border-radius: 16px;
+        background: rgba(255, 252, 245, 0.94);
+        border: 1px solid rgba(44, 33, 24, 0.1);
+        box-shadow: 0 10px 26px rgba(44, 33, 24, 0.12);
+        font-size: 13px;
+        line-height: 1.45;
+      }
+
+      .callout strong {
+        display: block;
+        margin-bottom: 4px;
+      }
+
+      .callout--timeline-a {
+        left: 18px;
+        top: 18px;
+      }
+
+      .callout--timeline-b {
+        right: 18px;
+        bottom: 18px;
+      }
+
+      .callout--diagnostics-a {
+        left: 20px;
+        top: 18px;
+      }
+
+      .callout--diagnostics-b {
+        right: 18px;
+        bottom: 18px;
+      }
+
+      .callout--dependencies-a {
+        left: 18px;
+        top: 18px;
+      }
+
+      .callout--dependencies-b {
+        right: 18px;
+        bottom: 18px;
+      }
+
+      .callout--scenarios-a {
+        left: 18px;
+        top: 18px;
+      }
+
+      .footer {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        font-size: 12px;
+        color: rgba(44, 33, 24, 0.72);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="hero">
+        <div>
+          <p class="eyebrow">Annotated storyboard</p>
+          <h1>Threadline turns complicated work into an executable plan.</h1>
+          <p class="lede">
+            Instead of pretending projects are just lists, it models dependencies, lane capacity,
+            schedule risk, and uncertainty in one local-only planning instrument.
+          </p>
+          <div class="pill-row">
+            <span class="pill">Deterministic scheduling</span>
+            <span class="pill">Critical path</span>
+            <span class="pill">Capacity-aware timeline</span>
+            <span class="pill">Scenario diff</span>
+            <span class="pill">Plain-English explanations</span>
+          </div>
+        </div>
+        <div class="how">
+          <div class="how-step">
+            <p class="eyebrow">How to read it</p>
+            <strong>1. Frame the work</strong>
+            <span>Set tasks, dependencies, lanes, deadlines, and uncertainty.</span>
+          </div>
+          <div class="how-step">
+            <strong>2. Watch the schedule emerge</strong>
+            <span>The timeline respects both prerequisites and lane capacity.</span>
+          </div>
+          <div class="how-step">
+            <strong>3. Interrogate the pressure points</strong>
+            <span>Bottlenecks and slip impact come from the same model, not separate guesses.</span>
+          </div>
+          <div class="how-step">
+            <strong>4. Compare futures</strong>
+            <span>Optimistic, expected, and conservative views show how uncertainty changes the finish.</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="grid">
+        <article class="card">
+          <p class="eyebrow">Step 1</p>
+          <h2>The timeline makes hidden queueing visible.</h2>
+          <p>
+            Work does not just wait on dependencies. It also waits for people and lanes to free up.
+            Threadline shows both at once.
+          </p>
+          <div class="frame frame--timeline">
+            <img src="./raw/02-timeline.png" alt="Threadline timeline view" />
+            <div class="callout callout--timeline-a">
+              <strong>Capacity changes the truth.</strong>
+              <span>
+                The plan is not just "A before B." It is "A before B, and B may still wait because
+                the lane is busy."
+              </span>
+            </div>
+            <div class="callout callout--timeline-b">
+              <strong>The finish line is legible.</strong>
+              <span>
+                The project finish, local deadlines, and critical tasks are visible without a giant
+                spreadsheet.
+              </span>
+            </div>
+          </div>
+        </article>
+
+        <article class="card">
+          <p class="eyebrow">Step 2</p>
+          <h2>The diagnostics are explainable, not magical.</h2>
+          <p>
+            Bottlenecks, risk hotspots, and lane load all come from the same deterministic schedule
+            model.
+          </p>
+          <div class="frame frame--diagnostics">
+            <img src="./raw/03-diagnostics.png" alt="Threadline diagnostics view" />
+            <div class="callout callout--diagnostics-a">
+              <strong>One-day slip impact</strong>
+              <span>
+                The app can say which tasks matter because it recomputes the schedule, not because
+                it vibes the answer.
+              </span>
+            </div>
+            <div class="callout callout--diagnostics-b">
+              <strong>Plain-English guidance</strong>
+              <span>
+                The right rail translates the model into defer, cut, and leverage suggestions a
+                human can act on.
+              </span>
+            </div>
+          </div>
+        </article>
+
+        <article class="card">
+          <p class="eyebrow">Step 3</p>
+          <h2>The dependency map exposes the shape of the project.</h2>
+          <p>
+            A plan feels hard when its structure is hidden. Threadline makes that structure compact
+            and inspectable.
+          </p>
+          <div class="frame frame--dependencies">
+            <img src="./raw/04-dependencies.png" alt="Threadline dependency map view" />
+            <div class="callout callout--dependencies-a">
+              <strong>Depth comes from prerequisites.</strong>
+              <span>
+                The map shows what must happen first, which is usually where schedule confidence
+                actually comes from.
+              </span>
+            </div>
+            <div class="callout callout--dependencies-b">
+              <strong>One model, many views.</strong>
+              <span>
+                The same tasks drive the timeline, the diagnostics, and the graph instead of living
+                in disconnected screens.
+              </span>
+            </div>
+          </div>
+        </article>
+
+        <article class="card">
+          <p class="eyebrow">Step 4</p>
+          <h2>Scenario mode keeps uncertainty explicit.</h2>
+          <p>
+            The point is not to predict the future perfectly. It is to show how sensitive the plan
+            is when confidence gets worse or better.
+          </p>
+          <div class="frame frame--scenarios">
+            <img src="./raw/05-scenarios.png" alt="Threadline scenarios view" />
+            <div class="callout callout--scenarios-a">
+              <strong>Optimistic, expected, conservative</strong>
+              <span>
+                Small changes in confidence can move the finish date. That is a signal to revisit
+                scope or capacity, not to hope harder.
+              </span>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <footer class="footer">
+        <span>
+          Takeaway: Threadline makes complexity feel juggled, not flattened, by showing how the
+          work actually hangs together.
+        </span>
+        <span>Built from real local screenshots of the app.</span>
+      </footer>
+    </main>
+  </body>
+  </html>
