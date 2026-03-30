@@ -25,14 +25,21 @@
         background: inherit;
       }
 
+      a {
+        color: inherit;
+      }
+
       main {
-        width: min(1180px, calc(100vw - 2rem));
+        width: min(1260px, calc(100vw - 2rem));
         margin: 0 auto;
-        padding: 1.4rem 0 2rem;
+        padding: 1.3rem 0 2.5rem;
       }
 
       .hero,
-      .card {
+      .section,
+      .tool-card,
+      .story-card,
+      .matrix-card {
         border: 1px solid rgba(255, 255, 255, 0.12);
         border-radius: 28px;
         background: rgba(15, 20, 24, 0.84);
@@ -41,10 +48,17 @@
 
       .hero {
         display: grid;
-        grid-template-columns: 1.4fr 1fr;
+        grid-template-columns: 1.3fr 0.9fr;
         gap: 1rem;
-        padding: 1.2rem;
+        padding: 1.25rem;
         margin-bottom: 1rem;
+      }
+
+      .hero-copy h1,
+      h2,
+      h3,
+      p {
+        margin-top: 0;
       }
 
       .eyebrow {
@@ -55,23 +69,17 @@
         color: #d6ab57;
       }
 
-      h1,
-      h2,
-      p {
-        margin-top: 0;
-      }
-
       h1 {
         margin-bottom: 0.45rem;
-        font-size: clamp(2.4rem, 5vw, 4.2rem);
-        line-height: 0.95;
+        font-size: clamp(2.7rem, 5vw, 4.5rem);
+        line-height: 0.94;
       }
 
       .lede {
         max-width: 48rem;
         color: rgba(237, 244, 247, 0.8);
-        font-size: 1.05rem;
-        line-height: 1.6;
+        font-size: 1.08rem;
+        line-height: 1.62;
       }
 
       .pill-row {
@@ -87,33 +95,83 @@
         background: rgba(255, 255, 255, 0.04);
       }
 
-      .side-note {
+      .hero-side,
+      .tool-card,
+      .story-card,
+      .matrix-card,
+      .rail-card {
         display: grid;
-        gap: 0.8rem;
+        gap: 0.75rem;
       }
 
-      .note {
-        padding: 0.9rem;
+      .rail-card {
+        padding: 1rem;
         border-radius: 22px;
         border: 1px solid rgba(255, 255, 255, 0.08);
         background: rgba(255, 255, 255, 0.03);
       }
 
-      .grid {
+      .rail-card p:last-child,
+      .tool-card p:last-child,
+      .story-card p:last-child {
+        margin-bottom: 0;
+      }
+
+      .section {
+        padding: 1rem;
+        margin-bottom: 1rem;
+      }
+
+      .section-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        align-items: end;
+        margin-bottom: 0.9rem;
+      }
+
+      .section-note {
+        max-width: 32rem;
+        color: rgba(237, 244, 247, 0.68);
+        line-height: 1.55;
+      }
+
+      .tool-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 1rem;
       }
 
-      .card {
-        display: grid;
-        gap: 0.8rem;
+      .tool-card {
         padding: 1rem;
       }
 
-      .card p {
-        color: rgba(237, 244, 247, 0.72);
-        line-height: 1.55;
+      .tool-thumb {
+        overflow: hidden;
+        border-radius: 18px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        aspect-ratio: 4 / 3;
+        background: rgba(255, 255, 255, 0.02);
+      }
+
+      .tool-thumb img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+
+      .tool-copy {
+        color: rgba(237, 244, 247, 0.74);
+        line-height: 1.6;
+      }
+
+      .mini-list {
+        margin: 0;
+        padding-left: 1rem;
+        display: grid;
+        gap: 0.35rem;
+        color: rgba(237, 244, 247, 0.82);
       }
 
       .actions {
@@ -122,34 +180,88 @@
         gap: 0.6rem;
       }
 
-      a.button,
+      .button,
+      .command,
       code {
         font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
       }
 
-      a.button {
+      .button,
+      .command {
         display: inline-flex;
         align-items: center;
         justify-content: center;
         padding: 0.72rem 0.92rem;
         border-radius: 16px;
-        border: 1px solid rgba(225, 132, 59, 0.48);
-        background: rgba(225, 132, 59, 0.12);
-        color: #edf4f7;
         text-decoration: none;
       }
 
+      .button {
+        border: 1px solid rgba(225, 132, 59, 0.48);
+        background: rgba(225, 132, 59, 0.12);
+      }
+
       .command {
-        padding: 0.72rem 0.92rem;
-        border-radius: 16px;
         border: 1px solid rgba(255, 255, 255, 0.08);
         background: rgba(255, 255, 255, 0.03);
-        color: rgba(237, 244, 247, 0.85);
+        color: rgba(237, 244, 247, 0.88);
+      }
+
+      .story-grid,
+      .matrix-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 1rem;
+      }
+
+      .story-card,
+      .matrix-card {
+        padding: 1rem;
+      }
+
+      .matrix-card p,
+      .story-card p {
+        color: rgba(237, 244, 247, 0.72);
+        line-height: 1.55;
+      }
+
+      .spine {
+        display: inline-flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        padding: 0.5rem 0.65rem;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .spine span {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .spine span:not(:last-child)::after {
+        content: "→";
+        opacity: 0.5;
+      }
+
+      @media (max-width: 1100px) {
+        .tool-grid,
+        .story-grid,
+        .matrix-grid {
+          grid-template-columns: 1fr;
+        }
       }
 
       @media (max-width: 860px) {
         .hero {
           grid-template-columns: 1fr;
+        }
+
+        .section-head {
+          align-items: start;
+          flex-direction: column;
         }
       }
     </style>
@@ -157,74 +269,210 @@
   <body>
     <main>
       <section class="hero">
-        <div>
-          <p class="eyebrow">Local-first browser tools</p>
+        <div class="hero-copy">
+          <p class="eyebrow">Local reasoning instruments</p>
           <h1>friendly-octo-memory</h1>
           <p class="lede">
-            A small suite of local-only tools for handling complexity without pretending it is
-            simple: distill raw material, compare options, and map execution.
+            A small suite of local-only browser tools for making complicated things legible. The
+            point is not to make complexity disappear. The point is to let you juggle it without
+            turning the work into a giant table, a vague vibe, or a black box.
           </p>
           <div class="pill-row">
             <span class="pill">No backend</span>
             <span class="pill">No analytics</span>
             <span class="pill">Deterministic models</span>
             <span class="pill">Explainable outputs</span>
+            <span class="pill">Local-first artifacts</span>
           </div>
         </div>
-        <div class="side-note">
-          <div class="note">
+        <div class="hero-side">
+          <div class="rail-card">
             <p class="eyebrow">The spine</p>
-            <strong>Local Distillery -> Tradeoff Lens -> Threadline</strong>
-            <p>Understand the material. Choose a direction. Land the work.</p>
+            <div class="spine">
+              <span>Distill</span>
+              <span>Decide</span>
+              <span>Execute</span>
+            </div>
+            <p>
+              <strong>Local Distillery</strong> turns raw material into an artifact.
+              <strong> Tradeoff Lens</strong> turns ambiguity into a visible decision.
+              <strong> Threadline</strong> turns a complicated goal into an executable plan.
+            </p>
           </div>
-          <div class="note">
-            <p class="eyebrow">Repo shortcuts</p>
+          <div class="rail-card">
+            <p class="eyebrow">Quick launch</p>
+            <p><code>make local-distillery-serve</code></p>
             <p><code>make tradeoff-lens-dev</code></p>
             <p><code>make threadline-dev</code></p>
-            <p><code>make local-distillery-serve</code></p>
           </div>
         </div>
       </section>
 
-      <section class="grid">
-        <article class="card">
-          <p class="eyebrow">Decision analysis</p>
-          <h2>Tradeoff Lens</h2>
-          <p>
-            Compare candidates under explicit criteria, weights, and hard constraints with ranked
-            results, Pareto views, and plain-English explanations.
-          </p>
-          <div class="actions">
-            <a class="button" href="./TradeoffLens/">Open app</a>
-            <span class="command">make tradeoff-lens-dev</span>
+      <section class="section">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Choose your instrument</p>
+            <h2>Three tools, one idea</h2>
           </div>
-        </article>
+          <p class="section-note">
+            Use the one that matches the shape of the problem. The suite is more convincing when
+            the tools feel specific instead of pretending one interface can solve everything.
+          </p>
+        </div>
+        <div class="tool-grid">
+          <article class="tool-card">
+            <div class="tool-thumb">
+              <img
+                src="./LocalDistillery/storyboard/local-distillery-storyboard.png"
+                alt="Local Distillery storyboard"
+              />
+            </div>
+            <div>
+              <p class="eyebrow">Text distillation</p>
+              <h3>Local Distillery</h3>
+            </div>
+            <p class="tool-copy">
+              Turn notes, transcripts, specs, logs, and research into a compact artifact with
+              summary, digest, actions, questions, motifs, concepts, and export.
+            </p>
+            <ul class="mini-list">
+              <li>Best when the input is messy but the output should stay compact.</li>
+              <li>Feels like a local artifact machine, not a chat interface.</li>
+            </ul>
+            <div class="actions">
+              <a class="button" href="./LocalDistillery/index.html">Open app</a>
+              <span class="command">make local-distillery-serve</span>
+            </div>
+          </article>
 
-        <article class="card">
-          <p class="eyebrow">Planning instrument</p>
-          <h2>Threadline</h2>
-          <p>
-            Turn complicated work into an executable plan by making dependencies, lane capacity,
-            schedule risk, and uncertainty visible in one model.
-          </p>
-          <div class="actions">
-            <a class="button" href="./Threadline/">Open app</a>
-            <span class="command">make threadline-dev</span>
-          </div>
-        </article>
+          <article class="tool-card">
+            <div class="tool-thumb">
+              <img
+                src="./TradeoffLens/storyboard/tradeoff-lens-storyboard.png"
+                alt="Tradeoff Lens storyboard"
+              />
+            </div>
+            <div>
+              <p class="eyebrow">Decision analysis</p>
+              <h3>Tradeoff Lens</h3>
+            </div>
+            <p class="tool-copy">
+              Compare candidates under explicit criteria, weights, and hard constraints with ranked
+              results, pairwise views, frontier analysis, and plain-English explanations.
+            </p>
+            <ul class="mini-list">
+              <li>Best when the answer should be challengeable, not just felt.</li>
+              <li>Feels like an instrument panel instead of a spreadsheet.</li>
+            </ul>
+            <div class="actions">
+              <a class="button" href="./TradeoffLens/">Open app</a>
+              <span class="command">make tradeoff-lens-dev</span>
+            </div>
+          </article>
 
-        <article class="card">
-          <p class="eyebrow">Text distillation</p>
-          <h2>Local Distillery</h2>
-          <p>
-            Turn notes, transcripts, specs, logs, and research into a compact artifact with summary,
-            actions, questions, motifs, concepts, and export.
-          </p>
-          <div class="actions">
-            <a class="button" href="./LocalDistillery/index.html">Open app</a>
-            <span class="command">make local-distillery-serve</span>
+          <article class="tool-card">
+            <div class="tool-thumb">
+              <img
+                src="./Threadline/storyboard/threadline-storyboard.png"
+                alt="Threadline storyboard"
+              />
+            </div>
+            <div>
+              <p class="eyebrow">Planning instrument</p>
+              <h3>Threadline</h3>
+            </div>
+            <p class="tool-copy">
+              Turn complicated work into an executable plan by making dependencies, lane capacity,
+              schedule risk, and uncertainty visible in one deterministic model.
+            </p>
+            <ul class="mini-list">
+              <li>Best when the real problem is coordination, not just task listing.</li>
+              <li>Feels like scheduling logic you can actually inspect.</li>
+            </ul>
+            <div class="actions">
+              <a class="button" href="./Threadline/">Open app</a>
+              <span class="command">make threadline-dev</span>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">How they fit</p>
+            <h2>One workflow, three surfaces</h2>
           </div>
-        </article>
+          <p class="section-note">
+            The suite works best when each tool gets to specialize. The handoff from one to the
+            next is conceptual, not forced through a fake shared UI.
+          </p>
+        </div>
+        <div class="matrix-grid">
+          <article class="matrix-card">
+            <p class="eyebrow">1. Understand</p>
+            <h3>Distill the material</h3>
+            <p>
+              Start in Local Distillery when the problem is still buried in source notes, research,
+              or logs and you need the artifact before the judgment.
+            </p>
+          </article>
+          <article class="matrix-card">
+            <p class="eyebrow">2. Choose</p>
+            <h3>Make the tradeoffs explicit</h3>
+            <p>
+              Move to Tradeoff Lens once the real question is which option wins under stated values,
+              weights, and hard constraints.
+            </p>
+          </article>
+          <article class="matrix-card">
+            <p class="eyebrow">3. Land it</p>
+            <h3>Map execution and pressure</h3>
+            <p>
+              Use Threadline when the decision is made and the challenge becomes dependency shape,
+              queueing, deadlines, and schedule risk.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Why this is fun</p>
+            <h2>The suite gets to show off a little</h2>
+          </div>
+          <p class="section-note">
+            The interesting part is not that the apps are local-only. It is that they make
+            complexity feel calm without pretending the underlying model is simple.
+          </p>
+        </div>
+        <div class="story-grid">
+          <article class="story-card">
+            <p class="eyebrow">Local Distillery</p>
+            <h3>Messy input becomes a working artifact</h3>
+            <p>
+              Instead of asking you to read chaos until clarity appears, it extracts the shape of
+              the material directly into something you can use.
+            </p>
+          </article>
+          <article class="story-card">
+            <p class="eyebrow">Tradeoff Lens</p>
+            <h3>Subjective choices become inspectable</h3>
+            <p>
+              Instead of hiding the answer behind a score, it lets the score stay arguable and
+              therefore useful.
+            </p>
+          </article>
+          <article class="story-card">
+            <p class="eyebrow">Threadline</p>
+            <h3>Projects become legible under pressure</h3>
+            <p>
+              Instead of flattening work into a list, it shows how dependencies and capacity
+              actually steer the finish line.
+            </p>
+          </article>
+        </div>
       </section>
     </main>
   </body>
