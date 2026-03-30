@@ -1,0 +1,92 @@
+:root {
+  color-scheme: dark;
+  font-family: "IBM Plex Sans", "Avenir Next", sans-serif;
+  background:
+    radial-gradient(circle at top left, rgba(103, 184, 216, 0.12), transparent 22%),
+    radial-gradient(circle at top right, rgba(225, 132, 59, 0.16), transparent 28%),
+    linear-gradient(180deg, #10161b 0%, #0b0f13 100%);
+  color: #eef3f7;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: inherit;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+input,
+textarea {
+  width: 100%;
+  padding: 0.72rem 0.8rem;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: inherit;
+}
+
+textarea {
+  resize: none;
+}
+
+.workbench-lede,
+.workbench-note,
+.workbench-button span,
+.workbench-entity p {
+  color: rgba(238, 243, 247, 0.74);
+  line-height: 1.6;
+}
+
+.workbench-card,
+.workbench-entity {
+  padding: 0.9rem;
+  border-radius: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.workbench-demo-list,
+.workbench-stack,
+.workbench-field {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.workbench-button {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.72rem 0.92rem;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.workbench-button--active {
+  border-color: rgba(225, 132, 59, 0.52);
+  background: rgba(225, 132, 59, 0.12);
+}
+
+.workbench-field span {
+  font-size: 0.88rem;
+  color: rgba(238, 243, 247, 0.78);
+}
+
+.workbench-list {
+  margin: 0;
+  padding-left: 1rem;
+  display: grid;
+  gap: 0.45rem;
+  line-height: 1.55;
+}

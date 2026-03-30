@@ -1,4 +1,16 @@
-.PHONY: evidence-ledger-install evidence-ledger-dev evidence-ledger-build evidence-ledger-preview tradeoff-lens-install tradeoff-lens-dev tradeoff-lens-build tradeoff-lens-preview threadline-install threadline-dev threadline-build threadline-preview local-distillery-serve
+.PHONY: lens-workbench-install lens-workbench-dev lens-workbench-build lens-workbench-preview evidence-ledger-install evidence-ledger-dev evidence-ledger-build evidence-ledger-preview tradeoff-lens-install tradeoff-lens-dev tradeoff-lens-build tradeoff-lens-preview threadline-install threadline-dev threadline-build threadline-preview local-distillery-serve
+
+lens-workbench-install:
+	cd apps/lens-workbench && npm install
+
+lens-workbench-dev: lens-workbench-install
+	cd apps/lens-workbench && npm run dev -- --host 0.0.0.0
+
+lens-workbench-build: lens-workbench-install
+	cd apps/lens-workbench && npm run build
+
+lens-workbench-preview: lens-workbench-build
+	cd apps/lens-workbench && npm run preview -- --host 0.0.0.0
 
 evidence-ledger-install:
 	cd EvidenceLedger && npm install
