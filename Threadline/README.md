@@ -32,6 +32,7 @@ Most planning tools either flatten everything into a list or bury the schedule l
 - persist the current scenario in `localStorage`
 - import and export scenarios as JSON
 - export an analysis summary as Markdown
+- export a stable `ExecutionPlan` artifact snapshot for downstream claim-seeding workflows
 - include built-in demo scenarios for a beta launch, service migration, and talk/workshop rollout
 
 ## Run locally
