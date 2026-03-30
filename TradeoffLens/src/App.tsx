@@ -58,6 +58,10 @@ function rankLookup(ranking: ReturnType<typeof analyzeScenario>["ranking"]): Rec
   return Object.fromEntries(ranking.map((entry) => [entry.candidate.id, entry.rank]));
 }
 
+function describeAxisDirection(direction: "maximize" | "minimize", name: string): string {
+  return direction === "maximize" ? `Higher ${name} is better` : `Lower ${name} is better`;
+}
+
 export default function App() {
   const [scenario, setScenario] = useState<DecisionScenario>(() => loadScenario());
   const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(null);
@@ -95,6 +99,22 @@ export default function App() {
   const frontierPoints = useMemo(
     () => computeParetoFrontier(scenario, analysis, frontierXId, frontierYId),
     [scenario, analysis, frontierXId, frontierYId]
+  );
+  const frontierXCriterion = useMemo(
+    () =>
+      scenario.criteria.find(
+        (criterion): criterion is Extract<Criterion, { type: "numeric" }> =>
+          criterion.id === frontierXId && criterion.type === "numeric"
+      ) ?? null,
+    [scenario.criteria, frontierXId]
+  );
+  const frontierYCriterion = useMemo(
+    () =>
+      scenario.criteria.find(
+        (criterion): criterion is Extract<Criterion, { type: "numeric" }> =>
+          criterion.id === frontierYId && criterion.type === "numeric"
+      ) ?? null,
+    [scenario.criteria, frontierYId]
   );
 
   useEffect(() => {
@@ -1236,23 +1256,38 @@ export default function App() {
                 </div>
               ) : (
                 <>
+                  <p className="frontier-summary">
+                    {frontierXCriterion && frontierYCriterion
+                      ? `${describeAxisDirection(frontierXCriterion.direction, frontierXCriterion.name)}. ${describeAxisDirection(frontierYCriterion.direction, frontierYCriterion.name)}.`
+                      : "Compare two numeric criteria to see which options sit on the efficient frontier."}
+                  </p>
                   <div className="frontier-chart">
-                    {frontierPoints.map((point) => (
-                      <button
-                        key={point.candidateId}
-                        type="button"
-                        className={`frontier-point ${point.onFrontier ? "frontier" : ""}`}
-                        style={{
-                          left: `${point.xUtility * 100}%`,
-                          bottom: `${point.yUtility * 100}%`,
-                        }}
-                        onClick={() => setSelectedCandidateId(point.candidateId)}
-                      >
-                        <span>{point.candidateName}</span>
-                      </button>
-                    ))}
-                    <div className="axis-label axis-x">Better on X</div>
-                    <div className="axis-label axis-y">Better on Y</div>
+                    <div className="frontier-plot">
+                      {frontierPoints.map((point) => (
+                        <button
+                          key={point.candidateId}
+                          type="button"
+                          className={`frontier-point ${point.onFrontier ? "frontier" : ""} ${
+                            resolvedSelectedCandidateId === point.candidateId ? "selected" : ""
+                          }`}
+                          style={{
+                            left: `${point.xUtility * 100}%`,
+                            bottom: `${point.yUtility * 100}%`,
+                          }}
+                          onClick={() => setSelectedCandidateId(point.candidateId)}
+                          title={`${point.candidateName}: X ${formatNumber(point.xValue)}, Y ${formatNumber(point.yValue)}`}
+                          aria-label={`${point.candidateName}: X ${formatNumber(point.xValue)}, Y ${formatNumber(point.yValue)}`}
+                        >
+                          <span className="frontier-point-core" />
+                        </button>
+                      ))}
+                    </div>
+                    <div className="axis-label axis-x">
+                      {frontierXCriterion ? describeAxisDirection(frontierXCriterion.direction, frontierXCriterion.name) : "Better on X"}
+                    </div>
+                    <div className="axis-label axis-y">
+                      {frontierYCriterion ? describeAxisDirection(frontierYCriterion.direction, frontierYCriterion.name) : "Better on Y"}
+                    </div>
                   </div>
                   <div className="frontier-legend">
                     {frontierPoints.map((point) => (
@@ -1261,6 +1296,7 @@ export default function App() {
                         <strong>{point.candidateName}</strong>
                         <small>
                           X {formatNumber(point.xValue)} • Y {formatNumber(point.yValue)}
+                          {point.onFrontier ? " • On frontier" : ""}
                         </small>
                       </div>
                     ))}

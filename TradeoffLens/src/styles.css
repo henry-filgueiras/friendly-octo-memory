@@ -435,27 +435,48 @@ button {
   gap: 0.8rem;
 }
 
+.frontier-summary {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
 .frontier-chart {
   position: relative;
   min-height: 320px;
   border-radius: 28px;
   border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.02);
+  overflow: hidden;
+}
+
+.frontier-plot {
+  position: absolute;
+  inset: 1rem 1rem 2.8rem 2.8rem;
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   background:
     linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
-    linear-gradient(to top, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
-    rgba(255, 255, 255, 0.02);
-  background-size: 20% 20%;
-  overflow: hidden;
+    linear-gradient(to top, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 25% 25%;
 }
 
 .frontier-point {
   position: absolute;
   transform: translate(-50%, 50%);
+  width: 1rem;
+  height: 1rem;
+  padding: 0;
   border: 1px solid var(--line-strong);
-  background: rgba(93, 199, 192, 0.16);
-  color: var(--text);
-  border-radius: 999px;
-  padding: 0.45rem 0.7rem;
+  background: rgba(93, 199, 192, 0.26);
+  border-radius: 50%;
+}
+
+.frontier-point-core {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
 }
 
 .frontier-point.frontier,
@@ -464,20 +485,27 @@ button {
   border-color: rgba(224, 165, 60, 0.56);
 }
 
+.frontier-point.selected {
+  box-shadow: 0 0 0 4px rgba(224, 165, 60, 0.18);
+}
+
 .axis-label {
   position: absolute;
   color: var(--muted);
   font-size: 0.8rem;
+  max-width: 12rem;
+  line-height: 1.35;
 }
 
 .axis-x {
-  bottom: 0.7rem;
-  right: 0.8rem;
+  bottom: 0.85rem;
+  right: 1rem;
+  text-align: right;
 }
 
 .axis-y {
-  top: 0.8rem;
-  left: 0.7rem;
+  top: 0.9rem;
+  left: 1rem;
 }
 
 .legend-row,
