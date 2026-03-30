@@ -10,7 +10,12 @@ import { buildMarkdownSummary } from "./domain/markdown";
 import { syncScenario } from "./domain/helpers";
 import type { ThreadlineScenario } from "./domain/types";
 import { useThreadlineScenarioState } from "./hooks/useThreadlineScenarioState";
-import { downloadText } from "./utils/download";
+import {
+  downloadText,
+  exportScenarioJson,
+  readJsonFile,
+  unwrapScenarioEnvelope,
+} from "lens-core";
 
 const DEMOS = getDemoScenarios();
 const GUIDED_DEMO_ID = "demo-launch";
@@ -110,9 +115,10 @@ export default function App() {
     }
 
     try {
-      const text = await file.text();
-      const parsed = JSON.parse(text) as ThreadlineScenario | { scenario: ThreadlineScenario };
-      replaceScenario(syncScenario("scenario" in parsed ? parsed.scenario : parsed));
+      const parsed = await readJsonFile<
+        ThreadlineScenario | { scenario: ThreadlineScenario }
+      >(file);
+      replaceScenario(syncScenario(unwrapScenarioEnvelope(parsed)));
       setGuidedDemoStepIndex(null);
     } catch {
       window.alert("Could not import that JSON file.");
@@ -122,11 +128,7 @@ export default function App() {
   }
 
   function exportJson() {
-    downloadText(
-      "threadline-scenario.json",
-      JSON.stringify(scenario, null, 2),
-      "application/json"
-    );
+    exportScenarioJson("threadline-scenario.json", scenario);
   }
 
   function exportMarkdown() {

@@ -1,24 +1,17 @@
 import { createEmptyScenario, syncScenario } from "../domain/helpers";
 import type { ThreadlineScenario } from "../domain/types";
+import { loadLocalScenario, saveLocalScenario } from "lens-core";
 
 const STORAGE_KEY = "threadline.scenario.v1";
 
 export function loadScenario(): ThreadlineScenario {
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-
-    if (!raw) {
-      return createEmptyScenario();
-    }
-
-    const parsed = JSON.parse(raw) as ThreadlineScenario | { scenario: ThreadlineScenario };
-    const scenario = "scenario" in parsed ? parsed.scenario : parsed;
-    return syncScenario(scenario);
-  } catch {
-    return createEmptyScenario();
-  }
+  return loadLocalScenario({
+    createEmpty: createEmptyScenario,
+    storageKey: STORAGE_KEY,
+    sync: syncScenario,
+  });
 }
 
 export function saveScenario(scenario: ThreadlineScenario): void {
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(scenario));
+  saveLocalScenario(STORAGE_KEY, scenario);
 }

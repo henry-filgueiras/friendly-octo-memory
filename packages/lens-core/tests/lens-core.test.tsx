@@ -44,6 +44,26 @@ describe("lens-core", () => {
     expect(loaded).toEqual({ id: "saved", synced: true });
   });
 
+  it("falls back to the empty scenario when local storage is missing or invalid", () => {
+    const windowStub = {
+      localStorage: {
+        getItem() {
+          return "{not-valid-json";
+        },
+      },
+    };
+
+    Object.assign(globalThis, { window: windowStub });
+
+    const loaded = loadLocalScenario({
+      createEmpty: () => ({ id: "empty" }),
+      storageKey: "lens-core.missing",
+      sync: (scenario: { id: string }) => ({ ...scenario, synced: true }),
+    });
+
+    expect(loaded).toEqual({ id: "empty" });
+  });
+
   it("exports boring shell wrappers that render predictable markup", () => {
     const html = renderToStaticMarkup(
       <LensShell>
@@ -53,6 +73,7 @@ describe("lens-core", () => {
       </LensShell>
     );
 
+    expect(typeof LensShell).toBe("function");
     expect(html).toContain("lens-shell");
     expect(html).toContain("lens-hero");
     expect(html).toContain("lens-panel");

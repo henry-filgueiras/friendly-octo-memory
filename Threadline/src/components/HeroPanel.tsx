@@ -1,8 +1,9 @@
 import type { ChangeEvent, RefObject } from "react";
-import type { DemoScenario } from "../data/demos";
+import type { LensDemoScenario } from "lens-core";
+import type { ThreadlineScenario } from "../domain/types";
 
 interface HeroPanelProps {
-  demos: DemoScenario[];
+  demos: LensDemoScenario<ThreadlineScenario>[];
   importInputRef: RefObject<HTMLInputElement>;
   onExportJson: () => void;
   onExportMarkdown: () => void;

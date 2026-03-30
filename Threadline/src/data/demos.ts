@@ -1,5 +1,6 @@
 import { syncScenario } from "../domain/helpers";
 import type { ThreadlineScenario } from "../domain/types";
+import type { LensDemoScenario } from "lens-core";
 
 function createLaunchDemo(): ThreadlineScenario {
   return syncScenario({
@@ -354,14 +355,7 @@ function createShowDemo(): ThreadlineScenario {
   });
 }
 
-export interface DemoScenario {
-  id: string;
-  label: string;
-  description: string;
-  scenario: ThreadlineScenario;
-}
-
-export function getDemoScenarios(): DemoScenario[] {
+export function getDemoScenarios(): LensDemoScenario<ThreadlineScenario>[] {
   const launch = createLaunchDemo();
   const migration = createMigrationDemo();
   const show = createShowDemo();
