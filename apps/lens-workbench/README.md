@@ -10,6 +10,12 @@ Artifact Lab now persists a full local workspace bundle. That bundle includes kn
 
 Artifact Lab is the suite's interop surface: load a typed artifact, inspect provenance, apply a narrow transform, record the manual session as a replayable journal, and keep the whole local workspace durable across reloads.
 
+The current UI is organized around three operator zones:
+
+- `Workspace control tower`: workspace bundle, session switching, and run/fork orientation
+- `Workflow Atlas + transcript`: the detailed run projection over the append-only journal
+- `Artifact flow bench`: current head, manual transforms, derived output, and head comparison
+
 ## Workspace constellation
 
 ![Workspace constellation storyboard](storyboard/workspace-constellation-storyboard.png)
@@ -39,6 +45,8 @@ It is most useful once the workspace stops being a single linear run and starts 
 - transcript = the append-only textual view of the same journal
 
 These are all projections over the same durable workspace and run-journal data. The journal and workspace bundle remain the source of truth.
+
+![Workflow Atlas storyboard](storyboard/workflow-atlas-storyboard.png)
 
 Atlas gives you:
 

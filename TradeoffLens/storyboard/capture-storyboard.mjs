@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import puppeteer from "puppeteer-core";
+import puppeteer from "/private/tmp/tradeoff-lens-storyboard-tools/node_modules/puppeteer-core/lib/esm/puppeteer/puppeteer-core.js";
 
 const chromePath = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 const appUrl = "http://127.0.0.1:5173/";
