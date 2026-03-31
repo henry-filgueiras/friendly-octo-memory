@@ -92,11 +92,6 @@ textarea {
   align-content: start;
 }
 
-.workbench-dashboard__column--nav .lens-panel:first-child {
-  position: sticky;
-  top: 1rem;
-}
-
 .workbench-subgrid,
 .artifact-head-grid {
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -715,10 +710,6 @@ textarea {
     grid-template-columns: minmax(280px, 0.92fr) minmax(0, 1.08fr);
   }
 
-  .workbench-dashboard__column--nav .lens-panel:first-child {
-    position: static;
-  }
-
   .workbench-dashboard__column--bench {
     grid-column: 1 / -1;
   }
@@ -727,10 +718,6 @@ textarea {
 @media (max-width: 1040px) {
   .workbench-dashboard {
     grid-template-columns: 1fr;
-  }
-
-  .workbench-dashboard__column--nav .lens-panel:first-child {
-    position: static;
   }
 }
 
