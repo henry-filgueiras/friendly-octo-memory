@@ -118,6 +118,12 @@ export interface ArtifactLabCheckpoint {
   labels: string[];
 }
 
+export interface ArtifactLabReplayTimelineEntry {
+  event: ArtifactLabRunEvent;
+  stateBefore: ArtifactLabReplayState;
+  stateAfter: ArtifactLabReplayState;
+}
+
 let sessionCounter = 0;
 
 function createSessionId() {
@@ -173,6 +179,95 @@ function maybeAdvanceRecipeStep(
   }
 
   return completedRecipeSteps;
+}
+
+function applyArtifactLabRunEventToState(
+  currentState: ArtifactLabReplayState,
+  event: ArtifactLabRunEvent
+): ArtifactLabReplayState {
+  switch (event.type) {
+    case "artifact-loaded":
+    case "artifact-imported":
+      return {
+        ...currentState,
+        currentArtifact: event.artifact,
+        derivedArtifact: null,
+        selectedTransformId: deriveSelectedTransformId(
+          event.artifact,
+          currentState.activeRecipeId,
+          currentState.completedRecipeSteps
+        ),
+      };
+    case "recipe-activated":
+      return {
+        ...currentState,
+        activeRecipeId: event.recipeId,
+        completedRecipeSteps: 0,
+        selectedTransformId: deriveSelectedTransformId(
+          currentState.currentArtifact,
+          event.recipeId,
+          0
+        ),
+      };
+    case "recipe-cleared":
+      return {
+        ...currentState,
+        activeRecipeId: null,
+        completedRecipeSteps: 0,
+        selectedTransformId: deriveSelectedTransformId(currentState.currentArtifact, null, 0),
+      };
+    case "transform-selected": {
+      const transform = getLensTransformById(event.transformId);
+
+      if (
+        transform &&
+        currentState.currentArtifact &&
+        transform.inputKind === currentState.currentArtifact.kind
+      ) {
+        return {
+          ...currentState,
+          selectedTransformId: transform.id,
+        };
+      }
+
+      return currentState;
+    }
+    case "transform-applied": {
+      const nextCompletedSteps = maybeAdvanceRecipeStep(
+        currentState.activeRecipeId,
+        currentState.completedRecipeSteps,
+        event
+      );
+
+      return {
+        ...currentState,
+        derivedArtifact: event.outputArtifact,
+        completedRecipeSteps: nextCompletedSteps,
+        selectedTransformId:
+          nextCompletedSteps !== currentState.completedRecipeSteps
+            ? deriveSelectedTransformId(
+                currentState.currentArtifact,
+                currentState.activeRecipeId,
+                nextCompletedSteps
+              )
+            : currentState.selectedTransformId,
+      };
+    }
+    case "derived-artifact-promoted":
+      return {
+        ...currentState,
+        currentArtifact: event.artifact,
+        derivedArtifact: null,
+        selectedTransformId: deriveSelectedTransformId(
+          event.artifact,
+          currentState.activeRecipeId,
+          currentState.completedRecipeSteps
+        ),
+      };
+    case "artifact-exported":
+    case "checkpoint-marked":
+      return currentState;
+  }
 }
 
 export function createArtifactLabRunJournal(
@@ -292,89 +387,34 @@ export function replayArtifactLabRunJournal(
   };
 
   for (const event of journal.events) {
-    switch (event.type) {
-      case "artifact-loaded":
-      case "artifact-imported":
-        state = {
-          ...state,
-          currentArtifact: event.artifact,
-          derivedArtifact: null,
-          selectedTransformId: deriveSelectedTransformId(
-            event.artifact,
-            state.activeRecipeId,
-            state.completedRecipeSteps
-          ),
-        };
-        break;
-      case "recipe-activated":
-        state = {
-          ...state,
-          activeRecipeId: event.recipeId,
-          completedRecipeSteps: 0,
-          selectedTransformId: deriveSelectedTransformId(state.currentArtifact, event.recipeId, 0),
-        };
-        break;
-      case "recipe-cleared":
-        state = {
-          ...state,
-          activeRecipeId: null,
-          completedRecipeSteps: 0,
-          selectedTransformId: deriveSelectedTransformId(state.currentArtifact, null, 0),
-        };
-        break;
-      case "transform-selected": {
-        const transform = getLensTransformById(event.transformId);
-
-        if (transform && state.currentArtifact && transform.inputKind === state.currentArtifact.kind) {
-          state = {
-            ...state,
-            selectedTransformId: transform.id,
-          };
-        }
-
-        break;
-      }
-      case "transform-applied": {
-        const nextCompletedSteps = maybeAdvanceRecipeStep(
-          state.activeRecipeId,
-          state.completedRecipeSteps,
-          event
-        );
-
-        state = {
-          ...state,
-          derivedArtifact: event.outputArtifact,
-          completedRecipeSteps: nextCompletedSteps,
-          selectedTransformId:
-            nextCompletedSteps !== state.completedRecipeSteps
-              ? deriveSelectedTransformId(
-                  state.currentArtifact,
-                  state.activeRecipeId,
-                  nextCompletedSteps
-                )
-              : state.selectedTransformId,
-        };
-        break;
-      }
-      case "derived-artifact-promoted":
-        state = {
-          ...state,
-          currentArtifact: event.artifact,
-          derivedArtifact: null,
-          selectedTransformId: deriveSelectedTransformId(
-            event.artifact,
-            state.activeRecipeId,
-            state.completedRecipeSteps
-          ),
-        };
-        break;
-      case "artifact-exported":
-      case "checkpoint-marked":
-        break;
-    }
+    state = applyArtifactLabRunEventToState(state, event);
   }
 
   return state;
+}
+
+export function getArtifactLabReplayTimeline(
+  journal: ArtifactLabRunJournal
+): ArtifactLabReplayTimelineEntry[] {
+  let state: ArtifactLabReplayState = {
+    currentArtifact: null,
+    derivedArtifact: null,
+    activeRecipeId: null,
+    completedRecipeSteps: 0,
+    selectedTransformId: null,
+  };
+
+  return journal.events.map((event) => {
+    const stateBefore = state;
+    const stateAfter = applyArtifactLabRunEventToState(stateBefore, event);
+    state = stateAfter;
+
+    return {
+      event,
+      stateBefore,
+      stateAfter,
+    };
+  });
 }
 
 export function formatArtifactLabRunEvent(

@@ -27,7 +27,6 @@ import {
   appendArtifactLabRunEvent,
   createArtifactLabRunJournal,
   createForkedArtifactLabRunJournal,
-  formatArtifactLabRunEvent,
   getArtifactLabCheckpointMap,
   getRecipeTransforms,
   type ArtifactLabRunEventInput,
@@ -49,6 +48,7 @@ import {
   type ArtifactLabWorkspace,
 } from "./workspace";
 import { buildWorkspaceConstellation, getConstellationArtifactColor } from "./constellation";
+import { buildWorkflowAtlasProjection, type WorkflowAtlasNode } from "./atlas";
 
 function summarizeArtifactPayload(artifact: WorkbenchArtifact): string[] {
   switch (artifact.kind) {
@@ -227,6 +227,31 @@ function formatCategory(category?: string) {
 
 function formatDiffReasons(reasons: string[]) {
   return reasons.length > 0 ? ` (${reasons.join("; ")})` : "";
+}
+
+function formatAtlasLaneLabel(node: WorkflowAtlasNode) {
+  switch (node.eventType) {
+    case "artifact-loaded":
+    case "artifact-imported":
+      return "Current source";
+    case "transform-applied":
+      return "Derived output";
+    case "derived-artifact-promoted":
+      return "Promoted current";
+    case "artifact-exported":
+      return "Export";
+    case "recipe-activated":
+    case "recipe-cleared":
+      return "Recipe";
+    case "transform-selected":
+      return "Selection";
+    case "checkpoint-marked":
+      return "Checkpoint";
+  }
+}
+
+function getAtlasNodeArtifact(node: WorkflowAtlasNode) {
+  return node.artifact;
 }
 
 function buildDiffSummarySections(comparison: LensArtifactHeadComparison): DiffSummarySection[] {
@@ -478,6 +503,8 @@ export default function App() {
   const artifactImportRef = useRef<HTMLInputElement | null>(null);
   const journalImportRef = useRef<HTMLInputElement | null>(null);
   const workspaceImportRef = useRef<HTMLInputElement | null>(null);
+  const atlasNodeRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const transcriptEntryRefs = useRef<Record<string, HTMLLIElement | null>>({});
   const [workspace, setWorkspace] = useState<ArtifactLabWorkspace>(() => {
     const persisted = loadArtifactLabWorkspaceFromStorage();
 
@@ -497,6 +524,7 @@ export default function App() {
   const runJournal =
     knownRunJournals.find((journal) => journal.sessionId === currentSessionId) ?? knownRunJournals[0]!;
   const projected = useMemo(() => replayArtifactLabRunJournal(runJournal), [runJournal]);
+  const atlasProjection = useMemo(() => buildWorkflowAtlasProjection(runJournal), [runJournal]);
   const currentArtifact = projected.currentArtifact;
   const derivedArtifact = projected.derivedArtifact;
   const activeRecipe = useMemo(
@@ -507,10 +535,7 @@ export default function App() {
   const currentRecipeStep = activeRecipeTransforms[projected.completedRecipeSteps];
   const currentRecipeHint = activeRecipe?.stepHints?.[projected.completedRecipeSteps];
   const remainingRecipeTransforms = activeRecipeTransforms.slice(projected.completedRecipeSteps);
-  const transcriptEntries = useMemo(
-    () => runJournal.events.map(formatArtifactLabRunEvent),
-    [runJournal]
-  );
+  const transcriptEntries = atlasProjection.transcriptEntries;
   const knownSessions = useMemo(
     () =>
       knownRunJournals.map((journal) => ({
@@ -536,6 +561,10 @@ export default function App() {
   const comparisonProjected = comparisonJournal
     ? replayArtifactLabRunJournal(comparisonJournal)
     : null;
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(
+    () => runJournal.events.at(-1)?.id ?? null
+  );
+  const [observedPathEventIds, setObservedPathEventIds] = useState<string[]>([]);
   const constellation = useMemo(
     () =>
       buildWorkspaceConstellation(
@@ -592,10 +621,32 @@ export default function App() {
       derivedArtifact.kind === currentRecipeStep.inputKind &&
       currentArtifact.kind !== currentRecipeStep.inputKind
   );
+  const selectedAtlasNode =
+    atlasProjection.nodes.find((node) => node.eventId === selectedEventId) ??
+    atlasProjection.nodes.at(-1) ??
+    null;
+  const observedPathNodes = atlasProjection.nodes.filter((node) =>
+    observedPathEventIds.includes(node.eventId)
+  );
   const headComparison =
     comparisonProjected?.currentArtifact != null
       ? compareLensArtifactHeads(comparisonProjected.currentArtifact, currentArtifact)
       : null;
+
+  useEffect(() => {
+    setSelectedEventId(runJournal.events.at(-1)?.id ?? null);
+    setObservedPathEventIds([]);
+  }, [runJournal.sessionId]);
+
+  useEffect(() => {
+    setObservedPathEventIds((current) =>
+      current.filter((eventId) =>
+        atlasProjection.nodes.some(
+          (node) => node.eventId === eventId && node.eventType === "transform-applied"
+        )
+      )
+    );
+  }, [atlasProjection.nodes]);
 
   function appendEvent(input: ArtifactLabRunEventInput, at = new Date().toISOString()) {
     updateWorkspace((current) => ({
@@ -817,6 +868,59 @@ export default function App() {
         ? getLensRecipe(replayed.activeRecipeId)?.targetKind ?? ""
         : "",
     }));
+  }
+
+  function focusEvent(eventId: string, source: "atlas" | "transcript" | "detail") {
+    setSelectedEventId(eventId);
+
+    requestAnimationFrame(() => {
+      if (source !== "atlas") {
+        atlasNodeRefs.current[eventId]?.scrollIntoView({
+          behavior: "smooth",
+          block: "nearest",
+          inline: "center",
+        });
+      }
+
+      if (source !== "transcript") {
+        transcriptEntryRefs.current[eventId]?.scrollIntoView({
+          behavior: "smooth",
+          block: "nearest",
+        });
+      }
+    });
+  }
+
+  function toggleObservedPathEvent(eventId: string) {
+    const targetNode = atlasProjection.nodes.find(
+      (node) => node.eventId === eventId && node.eventType === "transform-applied"
+    );
+
+    if (!targetNode) {
+      return;
+    }
+
+    setObservedPathEventIds((current) => {
+      if (current.includes(eventId)) {
+        return current.filter((entry) => entry !== eventId);
+      }
+
+      const next = [...current, eventId];
+
+      return next.sort((left, right) => {
+        const leftIndex = atlasProjection.nodes.find((node) => node.eventId === left)?.index ?? 0;
+        const rightIndex =
+          atlasProjection.nodes.find((node) => node.eventId === right)?.index ?? 0;
+
+        return leftIndex - rightIndex;
+      });
+    });
+  }
+
+  function handlePromoteObservedPath() {
+    window.alert(
+      "Promote to recipe is still grounded work-in-progress. What's missing: recipe naming, start/target validation, step hints, and a safe way to persist new recipes without pretending the observed path is automatically canonical."
+    );
   }
 
   return (
@@ -1158,6 +1262,294 @@ export default function App() {
                   {getLensArtifactDefinition(kind)?.label ?? kind}
                 </span>
               ))}
+            </div>
+          </div>
+        </LensPanel>
+
+        <LensPanel>
+          <div className={lensShellClasses.panelHeader}>
+            <div>
+              <p className={lensShellClasses.eyebrow}>Workflow Atlas</p>
+              <h2>Detailed run projection</h2>
+            </div>
+            <p className="workbench-note">
+              Atlas is a projection over the current run journal. The append-only journal and
+              durable workspace stay the source of truth.
+            </p>
+          </div>
+
+          <div className="workbench-stack">
+            {runJournal.forkedFrom ? (
+              <div className="workbench-card atlas-origin-card">
+                <p className={lensShellClasses.eyebrow}>Fork origin</p>
+                <strong>{runJournal.forkedFrom.sessionId}</strong>
+                <p className="workbench-note">
+                  This run branches from <code>{runJournal.forkedFrom.eventId}</code>
+                  {runJournal.forkedFrom.checkpointLabel
+                    ? ` (${runJournal.forkedFrom.checkpointLabel})`
+                    : ""}{" "}
+                  in the parent session.
+                </p>
+              </div>
+            ) : null}
+
+            {atlasProjection.activeRecipe ? (
+              <div className="workbench-card atlas-recipe-card">
+                <div className="recipe-progress__summary">
+                  <div>
+                    <p className={lensShellClasses.eyebrow}>Recipe overlay</p>
+                    <strong>{atlasProjection.activeRecipe.recipe.label}</strong>
+                  </div>
+                  <span>
+                    {atlasProjection.activeRecipe.completedSteps} /{" "}
+                    {atlasProjection.activeRecipe.recipe.transformIds.length} steps completed
+                  </span>
+                </div>
+                <div className="atlas-chip-row">
+                  {atlasProjection.activeRecipe.recipe.transformIds.map((transformId, index) => {
+                    const transform = getLensTransformById(transformId);
+                    const isComplete = index < atlasProjection.activeRecipe!.completedSteps;
+
+                    return (
+                      <span
+                        key={transformId}
+                        className={`path-chip path-chip--transform ${
+                          isComplete ? "path-chip--complete" : ""
+                        }`}
+                      >
+                        {transform?.name ?? transformId}
+                      </span>
+                    );
+                  })}
+                </div>
+                {atlasProjection.activeRecipe.remainingTransforms.length > 0 ? (
+                  <p className="workbench-note">
+                    Remaining in Atlas:{" "}
+                    {atlasProjection.activeRecipe.remainingTransforms
+                      .map((transform) => transform.name)
+                      .join(", ")}
+                  </p>
+                ) : (
+                  <p className="workbench-note">
+                    Atlas shows the active recipe as complete for this run head.
+                  </p>
+                )}
+              </div>
+            ) : null}
+
+            <div className="workbench-card">
+              <div className="recipe-header">
+                <div>
+                  <p className={lensShellClasses.eyebrow}>Observed transform path</p>
+                  <h3 className="workbench-section-title">Path promotion groundwork</h3>
+                </div>
+                <button
+                  type="button"
+                  className="workbench-button workbench-button--subtle"
+                  onClick={handlePromoteObservedPath}
+                  disabled={observedPathNodes.length === 0}
+                >
+                  <strong>Promote to recipe</strong>
+                  <span>Stub only for now. Atlas can mark candidate paths, not author recipes yet.</span>
+                </button>
+              </div>
+              {observedPathNodes.length > 0 ? (
+                <>
+                  <div className="atlas-chip-row">
+                    {observedPathNodes.map((node) => (
+                      <span key={node.eventId} className="path-chip path-chip--transform">
+                        {node.transform?.name ?? node.title}
+                      </span>
+                    ))}
+                  </div>
+                  <p className="workbench-note">
+                    Missing before promotion becomes real: recipe naming, start/target checks, step
+                    hints, and safe persistence.
+                  </p>
+                </>
+              ) : (
+                <p className="workbench-note">
+                  Select one or more observed transform events from Atlas or the transcript to
+                  sketch a candidate path.
+                </p>
+              )}
+            </div>
+
+            <div className="atlas-layout">
+              <div className="atlas-scroll">
+                <div
+                  className="atlas-columns"
+                  style={{
+                    gridTemplateColumns: `repeat(${Math.max(1, atlasProjection.nodes.length)}, minmax(190px, 1fr))`,
+                  }}
+                >
+                  {atlasProjection.nodes.map((node) => {
+                    const selected = selectedAtlasNode?.eventId === node.eventId;
+                    const recipeMatched = Boolean(node.recipeStepMatch);
+                    const observed = observedPathEventIds.includes(node.eventId);
+                    const hasCurrentState =
+                      node.stateAfter.currentArtifact?.id === getAtlasNodeArtifact(node)?.id;
+                    const hasDerivedState =
+                      node.stateAfter.derivedArtifact?.id === getAtlasNodeArtifact(node)?.id;
+
+                    return (
+                      <div className="atlas-column" key={node.eventId}>
+                        <div className="atlas-column__meta">
+                          <span>#{node.index + 1}</span>
+                          <time dateTime={node.timestamp}>{formatEventTime(node.timestamp)}</time>
+                        </div>
+                        <div className="atlas-column__anchors">
+                          {node.checkpointLabels.length > 0 ? (
+                            node.checkpointLabels.map((label) => (
+                              <span className="transcript-badge" key={`${node.eventId}-${label}`}>
+                                {label}
+                              </span>
+                            ))
+                          ) : (
+                            <span className="atlas-anchor-placeholder">No checkpoints</span>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          ref={(element) => {
+                            atlasNodeRefs.current[node.eventId] = element;
+                          }}
+                          className={`atlas-node-card atlas-node-card--${node.lane} ${
+                            selected ? "atlas-node-card--selected" : ""
+                          } ${recipeMatched ? "atlas-node-card--recipe" : ""} ${
+                            observed ? "atlas-node-card--observed" : ""
+                          }`}
+                          onClick={() => focusEvent(node.eventId, "atlas")}
+                        >
+                          <span className="atlas-node-card__lane">{formatAtlasLaneLabel(node)}</span>
+                          <strong>{node.title}</strong>
+                          <span>{node.detail}</span>
+                          {node.recipeStepMatch ? (
+                            <span className="atlas-node-card__tag">
+                              Recipe step {node.recipeStepMatch.stepIndex + 1}
+                            </span>
+                          ) : null}
+                        </button>
+                        <div className="atlas-column__state">
+                          {hasCurrentState && node.stateAfter.currentArtifact ? (
+                            <span className="atlas-state-chip atlas-state-chip--current">
+                              Current: {node.stateAfter.currentArtifact.kind}
+                            </span>
+                          ) : null}
+                          {hasDerivedState && node.stateAfter.derivedArtifact ? (
+                            <span className="atlas-state-chip atlas-state-chip--derived">
+                              Derived: {node.stateAfter.derivedArtifact.kind}
+                            </span>
+                          ) : null}
+                          {node.exportedArtifact ? (
+                            <span className="atlas-state-chip">
+                              Exported: {node.exportedArtifact.artifactKind}
+                            </span>
+                          ) : null}
+                          {!hasCurrentState && !hasDerivedState && !node.exportedArtifact ? (
+                            <span className="atlas-anchor-placeholder">State unchanged</span>
+                          ) : null}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="atlas-detail-card">
+                {selectedAtlasNode ? (
+                  <>
+                    <p className={lensShellClasses.eyebrow}>Selected atlas event</p>
+                    <strong>{selectedAtlasNode.title}</strong>
+                    <p className="workbench-note">{selectedAtlasNode.detail}</p>
+                    <dl className="artifact-meta">
+                      <div>
+                        <dt>Event</dt>
+                        <dd>
+                          #{selectedAtlasNode.index + 1} / {selectedAtlasNode.eventType}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt>Checkpoints</dt>
+                        <dd>
+                          {selectedAtlasNode.checkpointLabels.length > 0
+                            ? selectedAtlasNode.checkpointLabels.join(", ")
+                            : "None"}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt>Recipe status</dt>
+                        <dd>
+                          {selectedAtlasNode.recipeStepMatch
+                            ? `Completed recipe step ${selectedAtlasNode.recipeStepMatch.stepIndex + 1}`
+                            : atlasProjection.activeRecipe
+                              ? "Not on the completed recipe path"
+                              : "No active recipe"}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt>State after event</dt>
+                        <dd>
+                          Current: {selectedAtlasNode.stateAfter.currentArtifact?.kind ?? "None"} /
+                          Derived: {selectedAtlasNode.stateAfter.derivedArtifact?.kind ?? "None"}
+                        </dd>
+                      </div>
+                    </dl>
+
+                    {getAtlasNodeArtifact(selectedAtlasNode) ? (
+                      <div className="workbench-card">
+                        <p className={lensShellClasses.eyebrow}>Artifact details</p>
+                        <p className="workbench-note">
+                          {getAtlasNodeArtifact(selectedAtlasNode)!.kind}:{" "}
+                          {getAtlasNodeArtifact(selectedAtlasNode)!.title}
+                        </p>
+                        <p className="workbench-note">
+                          Produced by {formatProducedBy(getAtlasNodeArtifact(selectedAtlasNode)!)}
+                        </p>
+                      </div>
+                    ) : null}
+
+                    <div className="workbench-actions">
+                      <button
+                        type="button"
+                        className="workbench-button workbench-button--subtle"
+                        onClick={() => handleMarkCheckpoint(selectedAtlasNode.eventId)}
+                      >
+                        <strong>Mark checkpoint</strong>
+                        <span>Name this event as a reusable anchor.</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="workbench-button workbench-button--subtle"
+                        onClick={() => handleForkFromEvent(selectedAtlasNode.eventId)}
+                      >
+                        <strong>Fork from here</strong>
+                        <span>Start a child run from this exact replay point.</span>
+                      </button>
+                      {selectedAtlasNode.eventType === "transform-applied" ? (
+                        <button
+                          type="button"
+                          className={`workbench-button ${
+                            observedPathEventIds.includes(selectedAtlasNode.eventId)
+                              ? "workbench-button--active"
+                              : ""
+                          }`}
+                          onClick={() => toggleObservedPathEvent(selectedAtlasNode.eventId)}
+                        >
+                          <strong>
+                            {observedPathEventIds.includes(selectedAtlasNode.eventId)
+                              ? "Remove from observed path"
+                              : "Add to observed path"}
+                          </strong>
+                          <span>Use Atlas events to sketch a candidate reusable workflow path.</span>
+                        </button>
+                      ) : null}
+                    </div>
+                  </>
+                ) : (
+                  <p className="workbench-note">Select an atlas event to inspect it here.</p>
+                )}
+              </div>
             </div>
           </div>
         </LensPanel>
@@ -1709,7 +2101,24 @@ export default function App() {
 
             <ol className="transcript-list">
               {transcriptEntries.map((entry, index) => (
-                <li key={entry.id} className="transcript-item">
+                <li
+                  key={entry.id}
+                  ref={(element) => {
+                    transcriptEntryRefs.current[entry.id] = element;
+                  }}
+                  className={`transcript-item ${
+                    selectedAtlasNode?.eventId === entry.id ? "transcript-item--selected" : ""
+                  }`}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => focusEvent(entry.id, "transcript")}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      focusEvent(entry.id, "transcript");
+                    }
+                  }}
+                >
                   <div className="transcript-item__meta">
                     <span>{index + 1}.</span>
                     <time dateTime={entry.timestamp}>{formatEventTime(entry.timestamp)}</time>
@@ -1727,7 +2136,10 @@ export default function App() {
                     <button
                       type="button"
                       className="workbench-button workbench-button--subtle"
-                      onClick={() => handleMarkCheckpoint(entry.id)}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        handleMarkCheckpoint(entry.id);
+                      }}
                     >
                       <strong>Mark checkpoint</strong>
                       <span>Name this moment so it is easier to fork later.</span>
@@ -1735,11 +2147,35 @@ export default function App() {
                     <button
                       type="button"
                       className="workbench-button workbench-button--subtle"
-                      onClick={() => handleForkFromEvent(entry.id)}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        handleForkFromEvent(entry.id);
+                      }}
                     >
                       <strong>Fork from here</strong>
                       <span>Start a new manual session from this replay point.</span>
                     </button>
+                    {atlasProjection.nodes.find(
+                      (node) => node.eventId === entry.id && node.eventType === "transform-applied"
+                    ) ? (
+                      <button
+                        type="button"
+                        className={`workbench-button ${
+                          observedPathEventIds.includes(entry.id) ? "workbench-button--active" : ""
+                        }`}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          toggleObservedPathEvent(entry.id);
+                        }}
+                      >
+                        <strong>
+                          {observedPathEventIds.includes(entry.id)
+                            ? "Remove from observed path"
+                            : "Add to observed path"}
+                        </strong>
+                        <span>Use this transform event as part of a candidate recipe path.</span>
+                      </button>
+                    ) : null}
                   </div>
                 </li>
               ))}
