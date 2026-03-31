@@ -30,6 +30,23 @@ How to use it:
 
 It is most useful once the workspace stops being a single linear run and starts looking like a small local workflow universe.
 
+## Workflow atlas
+
+`Workflow Atlas` is the detailed companion to the constellation overview.
+
+- `Workspace constellation` = high-level branch/head overview across the whole workspace
+- `Workflow Atlas` = detailed projection of one run journal into events, checkpoints, recipe progress, artifact states, and fork origin
+- transcript = the append-only textual view of the same journal
+
+These are all projections over the same durable workspace and run-journal data. The journal and workspace bundle remain the source of truth.
+
+Atlas gives you:
+
+- event-to-transcript synchronization in both directions
+- checkpoint and fork actions from the graph surface
+- recipe overlay showing completed vs remaining transform steps
+- observed transform-path selection groundwork for future recipe promotion
+
 ## Manual artifact flow
 
 The current real cross-lens path is:
@@ -65,6 +82,7 @@ The first named recipe is:
 - Head comparison lets you compare the current run head against another known local run.
 - Workspace persistence stores the whole local operator state in `localStorage`, not just one run.
 - Workspace constellation gives you a quick visual read on current vs comparison runs and fork lineage.
+- Workflow Atlas gives you a richer event-and-state projection over the currently selected run.
 
 Artifact Lab now distinguishes three different import/export surfaces:
 
