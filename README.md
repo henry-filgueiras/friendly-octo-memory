@@ -104,6 +104,7 @@ Artifact Lab is the interop/operator bench: a local-only workspace for loading t
 
 - durable local workspace with run journals, forks, and comparison state
 - explicit `ExecutionPlan -> ClaimSet -> EvidenceMap` recipe guidance
+- workspace constellation for visual run/fork orientation
 - artifact, run-journal, and workspace import/export surfaces
 
 ![Artifact Lab storyboard](apps/lens-workbench/storyboard/artifact-lab-storyboard.png)
