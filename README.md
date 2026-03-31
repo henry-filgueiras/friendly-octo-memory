@@ -18,6 +18,10 @@ The four tools fit together around one workflow:
 
 The point is not to make complexity disappear. The point is to make it feel juggleable.
 
+There is also one secondary operator tool:
+
+- `Artifact Lab`: inspect, transform, replay, and hand off artifacts between lenses
+
 ## Suite gallery
 
 ### Local Distillery
@@ -92,6 +96,26 @@ make threadline-dev
 
 More detail lives in `Threadline/README.md`.
 
+## Operator tools
+
+### Artifact Lab
+
+Artifact Lab is the interop/operator bench: a local-only workspace for loading typed artifacts, applying explicit transforms, replaying append-only sessions, forking runs, and comparing session heads without turning the suite into a workflow black box.
+
+- durable local workspace with run journals, forks, and comparison state
+- explicit `ExecutionPlan -> ClaimSet -> EvidenceMap` recipe guidance
+- artifact, run-journal, and workspace import/export surfaces
+
+![Artifact Lab storyboard](apps/lens-workbench/storyboard/artifact-lab-storyboard.png)
+
+Quick start:
+
+```bash
+make lens-workbench-dev
+```
+
+More detail lives in `apps/lens-workbench/README.md`.
+
 ## Why these belong together
 
 Each tool specializes in a different kind of complexity:
@@ -109,6 +133,9 @@ Repo-root shortcuts:
 
 ```bash
 make local-distillery-serve
+make lens-workbench-dev
+make lens-workbench-build
+make lens-workbench-preview
 make evidence-ledger-dev
 make evidence-ledger-build
 make evidence-ledger-preview
@@ -130,5 +157,7 @@ make threadline-preview
 - `TradeoffLens/storyboard/tradeoff-lens-storyboard.png`: Tradeoff Lens walkthrough
 - `Threadline`: planning and execution-mapping app
 - `Threadline/storyboard/threadline-storyboard.png`: Threadline walkthrough
+- `apps/lens-workbench`: artifact interop and workflow operator bench
+- `apps/lens-workbench/storyboard/artifact-lab-storyboard.png`: Artifact Lab walkthrough
 - `Makefile`: repo-root shortcuts for the suite
-- `index.html`: static browser launcher/gallery for all four tools
+- `index.html`: static browser launcher/gallery for the suite

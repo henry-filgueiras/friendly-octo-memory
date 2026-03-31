@@ -1,10 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { LensArtifactKind, LensRecipe, LensTransform } from "lens-core";
+import type {
+  LensArtifactHeadComparison,
+  LensArtifactKind,
+  LensRecipe,
+  LensTransform,
+} from "lens-core";
 import {
   LensHero,
   LensPanel,
   LensShell,
   LensStatGrid,
+  compareLensArtifactHeads,
   exportScenarioJson,
   getCompatibleLensTransforms,
   getLensArtifactDefinition,
@@ -209,6 +215,264 @@ function describeSession(workspaceJournal: ArtifactLabWorkspace["knownRunJournal
     : workspaceJournal.sessionId;
 }
 
+interface DiffSummarySection {
+  title: string;
+  lines: string[];
+}
+
+function formatCategory(category?: string) {
+  return category || "Uncategorized";
+}
+
+function formatDiffReasons(reasons: string[]) {
+  return reasons.length > 0 ? ` (${reasons.join("; ")})` : "";
+}
+
+function buildDiffSummarySections(comparison: LensArtifactHeadComparison): DiffSummarySection[] {
+  switch (comparison.type) {
+    case "kind-mismatch":
+      return [
+        {
+          title: "Kind mismatch",
+          lines: [
+            `Comparison head is ${comparison.beforeKind}; current head is ${comparison.afterKind}. Structured diff is only available for matching artifact kinds.`,
+          ],
+        },
+      ];
+    case "unsupported-kind":
+      return [
+        {
+          title: "Diff not yet supported",
+          lines: [
+            `${comparison.kind} heads can be compared at the metadata level, but there is no lens-aware structured diff for this artifact kind yet.`,
+          ],
+        },
+      ];
+    case "ExecutionPlan": {
+      const sections: DiffSummarySection[] = [];
+
+      if (comparison.tasksAdded.length > 0) {
+        sections.push({
+          title: "Tasks added in current head",
+          lines: comparison.tasksAdded.map(
+            (task) =>
+              `${task.name} (${task.status}, ${task.critical ? "critical" : "non-critical"}, ${task.constraintIssueCount} constraint issues)`
+          ),
+        });
+      }
+
+      if (comparison.tasksRemoved.length > 0) {
+        sections.push({
+          title: "Tasks removed from current head",
+          lines: comparison.tasksRemoved.map(
+            (task) =>
+              `${task.name} (${task.status}, ${task.critical ? "critical" : "non-critical"}, ${task.constraintIssueCount} constraint issues)`
+          ),
+        });
+      }
+
+      if (comparison.criticalityChanges.length > 0) {
+        sections.push({
+          title: "Criticality changes",
+          lines: comparison.criticalityChanges.map(
+            (change) =>
+              `${change.taskName}: ${change.beforeCritical ? "critical" : "non-critical"} -> ${change.afterCritical ? "critical" : "non-critical"}`
+          ),
+        });
+      }
+
+      if (comparison.constraintIssueChanges.length > 0) {
+        sections.push({
+          title: "Constraint-issue changes",
+          lines: comparison.constraintIssueChanges.map((change) => {
+            const parts = [
+              change.added.length > 0 ? `+ ${change.added.join("; ")}` : "",
+              change.removed.length > 0 ? `- ${change.removed.join("; ")}` : "",
+            ].filter(Boolean);
+
+            return `${change.taskName}: ${parts.join("  ")}`;
+          }),
+        });
+      }
+
+      return sections.length > 0
+        ? sections
+        : [
+            {
+              title: "No diff detected",
+              lines: ["No task-level execution-plan changes were detected between these session heads."],
+            },
+          ];
+    }
+    case "ClaimSet": {
+      const sections: DiffSummarySection[] = [];
+
+      if (comparison.claimsAdded.length > 0) {
+        sections.push({
+          title: "Claims added in current head",
+          lines: comparison.claimsAdded.map(
+            (claim) => `${claim.statement} [${formatCategory(claim.category)}]`
+          ),
+        });
+      }
+
+      if (comparison.claimsRemoved.length > 0) {
+        sections.push({
+          title: "Claims removed from current head",
+          lines: comparison.claimsRemoved.map(
+            (claim) => `${claim.statement} [${formatCategory(claim.category)}]`
+          ),
+        });
+      }
+
+      if (comparison.categoryChanges.length > 0) {
+        sections.push({
+          title: "Claim category changes",
+          lines: comparison.categoryChanges.map(
+            (change) =>
+              `${change.statement}: ${formatCategory(change.beforeCategory)} -> ${formatCategory(change.afterCategory)}`
+          ),
+        });
+      }
+
+      return sections.length > 0
+        ? sections
+        : [
+            {
+              title: "No diff detected",
+              lines: ["No claim-set changes were detected between these session heads."],
+            },
+          ];
+    }
+    case "EvidenceMap": {
+      const sections: DiffSummarySection[] = [];
+      const coverageLines = [
+        comparison.coverage.claims.before !== comparison.coverage.claims.after
+          ? `Claims: ${comparison.coverage.claims.before} -> ${comparison.coverage.claims.after}`
+          : "",
+        comparison.coverage.sources.before !== comparison.coverage.sources.after
+          ? `Sources: ${comparison.coverage.sources.before} -> ${comparison.coverage.sources.after}`
+          : "",
+        comparison.coverage.links.before !== comparison.coverage.links.after
+          ? `Links: ${comparison.coverage.links.before} -> ${comparison.coverage.links.after}`
+          : "",
+        comparison.coverage.linkedClaims.before !== comparison.coverage.linkedClaims.after
+          ? `Linked claims: ${comparison.coverage.linkedClaims.before} -> ${comparison.coverage.linkedClaims.after}`
+          : "",
+        comparison.coverage.uncoveredClaims.before !== comparison.coverage.uncoveredClaims.after
+          ? `Uncovered claims: ${comparison.coverage.uncoveredClaims.before} -> ${comparison.coverage.uncoveredClaims.after}`
+          : "",
+      ].filter(Boolean);
+
+      if (coverageLines.length > 0) {
+        sections.push({
+          title: "Coverage and count changes",
+          lines: coverageLines,
+        });
+      }
+
+      if (comparison.claimsAdded.length > 0) {
+        sections.push({
+          title: "Claims added in current head",
+          lines: comparison.claimsAdded.map(
+            (claim) => `${claim.statement} [${formatCategory(claim.category)}]`
+          ),
+        });
+      }
+
+      if (comparison.claimsRemoved.length > 0) {
+        sections.push({
+          title: "Claims removed from current head",
+          lines: comparison.claimsRemoved.map(
+            (claim) => `${claim.statement} [${formatCategory(claim.category)}]`
+          ),
+        });
+      }
+
+      if (comparison.sourcesAdded.length > 0) {
+        sections.push({
+          title: "Sources added in current head",
+          lines: comparison.sourcesAdded.map((source) => source.title),
+        });
+      }
+
+      if (comparison.sourcesRemoved.length > 0) {
+        sections.push({
+          title: "Sources removed from current head",
+          lines: comparison.sourcesRemoved.map((source) => source.title),
+        });
+      }
+
+      if (comparison.linksAdded.length > 0) {
+        sections.push({
+          title: "Links added in current head",
+          lines: comparison.linksAdded.map(
+            (link) => `${link.claimId} ${link.stance} ${link.sourceId}`
+          ),
+        });
+      }
+
+      if (comparison.linksRemoved.length > 0) {
+        sections.push({
+          title: "Links removed from current head",
+          lines: comparison.linksRemoved.map(
+            (link) => `${link.claimId} ${link.stance} ${link.sourceId}`
+          ),
+        });
+      }
+
+      return sections.length > 0
+        ? sections
+        : [
+            {
+              title: "No diff detected",
+              lines: ["No evidence-map changes were detected between these session heads."],
+            },
+          ];
+    }
+    case "RankedOptions": {
+      const sections: DiffSummarySection[] = [];
+
+      if (comparison.rankChanges.length > 0) {
+        sections.push({
+          title: "Rank changes",
+          lines: comparison.rankChanges.map(
+            (change) =>
+              `${change.optionName}: #${change.beforeRank} -> #${change.afterRank}`
+          ),
+        });
+      }
+
+      if (comparison.exclusionsGained.length > 0) {
+        sections.push({
+          title: "Exclusions gained in current head",
+          lines: comparison.exclusionsGained.map(
+            (entry) => `${entry.optionName}${formatDiffReasons(entry.reasons)}`
+          ),
+        });
+      }
+
+      if (comparison.exclusionsLost.length > 0) {
+        sections.push({
+          title: "Exclusions lost from current head",
+          lines: comparison.exclusionsLost.map(
+            (entry) => `${entry.optionName}${formatDiffReasons(entry.reasons)}`
+          ),
+        });
+      }
+
+      return sections.length > 0
+        ? sections
+        : [
+            {
+              title: "No diff detected",
+              lines: ["No ranked-option changes were detected between these session heads."],
+            },
+          ];
+    }
+  }
+}
+
 export default function App() {
   const artifactImportRef = useRef<HTMLInputElement | null>(null);
   const journalImportRef = useRef<HTMLInputElement | null>(null);
@@ -308,6 +572,10 @@ export default function App() {
       derivedArtifact.kind === currentRecipeStep.inputKind &&
       currentArtifact.kind !== currentRecipeStep.inputKind
   );
+  const headComparison =
+    comparisonProjected?.currentArtifact != null
+      ? compareLensArtifactHeads(comparisonProjected.currentArtifact, currentArtifact)
+      : null;
 
   function appendEvent(input: ArtifactLabRunEventInput, at = new Date().toISOString()) {
     updateWorkspace((current) => ({
@@ -1389,62 +1657,85 @@ export default function App() {
                 </label>
 
                 {comparisonJournal && comparisonProjected ? (
-                  <div className="comparison-grid">
-                    <div className="comparison-card">
-                      <p className={lensShellClasses.eyebrow}>Current session</p>
-                      <strong>{runJournal.sessionId}</strong>
-                      <p className="workbench-note">
-                        {currentArtifact.kind}: {currentArtifact.title}
-                      </p>
-                      <p className="workbench-note">
-                        Origin:{" "}
-                        {runJournal.forkedFrom
-                          ? `${runJournal.forkedFrom.sessionId} / ${runJournal.forkedFrom.eventId}`
-                          : "Root"}
-                      </p>
-                      <ul className="workbench-list">
-                        <li>
-                          Recipe: {activeRecipe?.label ?? "None"} / {projected.completedRecipeSteps} steps
-                        </li>
-                        <li>Events: {runJournal.events.length}</li>
-                        {summarizeArtifactPayload(currentArtifact).map((line) => (
-                          <li key={`current-${line}`}>{line}</li>
-                        ))}
-                      </ul>
+                  <>
+                    <div className="comparison-grid">
+                      <div className="comparison-card">
+                        <p className={lensShellClasses.eyebrow}>Current session</p>
+                        <strong>{runJournal.sessionId}</strong>
+                        <p className="workbench-note">
+                          {currentArtifact.kind}: {currentArtifact.title}
+                        </p>
+                        <p className="workbench-note">
+                          Origin:{" "}
+                          {runJournal.forkedFrom
+                            ? `${runJournal.forkedFrom.sessionId} / ${runJournal.forkedFrom.eventId}`
+                            : "Root"}
+                        </p>
+                        <ul className="workbench-list">
+                          <li>
+                            Recipe: {activeRecipe?.label ?? "None"} / {projected.completedRecipeSteps} steps
+                          </li>
+                          <li>Events: {runJournal.events.length}</li>
+                          {summarizeArtifactPayload(currentArtifact).map((line) => (
+                            <li key={`current-${line}`}>{line}</li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      <div className="comparison-card">
+                        <p className={lensShellClasses.eyebrow}>Comparison session</p>
+                        <strong>{comparisonJournal.sessionId}</strong>
+                        <p className="workbench-note">
+                          {comparisonProjected.currentArtifact
+                            ? `${comparisonProjected.currentArtifact.kind}: ${comparisonProjected.currentArtifact.title}`
+                            : "No current artifact"}
+                        </p>
+                        <p className="workbench-note">
+                          Origin:{" "}
+                          {comparisonJournal.forkedFrom
+                            ? `${comparisonJournal.forkedFrom.sessionId} / ${comparisonJournal.forkedFrom.eventId}`
+                            : "Root"}
+                        </p>
+                        <ul className="workbench-list">
+                          <li>
+                            Recipe:{" "}
+                            {comparisonProjected.activeRecipeId
+                              ? getLensRecipe(comparisonProjected.activeRecipeId)?.label ??
+                                comparisonProjected.activeRecipeId
+                              : "None"}{" "}
+                            / {comparisonProjected.completedRecipeSteps} steps
+                          </li>
+                          <li>Events: {comparisonJournal.events.length}</li>
+                          {comparisonProjected.currentArtifact
+                            ? summarizeArtifactPayload(comparisonProjected.currentArtifact).map((line) => (
+                                <li key={`compare-${line}`}>{line}</li>
+                              ))
+                            : null}
+                        </ul>
+                      </div>
                     </div>
 
-                    <div className="comparison-card">
-                      <p className={lensShellClasses.eyebrow}>Comparison session</p>
-                      <strong>{comparisonJournal.sessionId}</strong>
-                      <p className="workbench-note">
-                        {comparisonProjected.currentArtifact
-                          ? `${comparisonProjected.currentArtifact.kind}: ${comparisonProjected.currentArtifact.title}`
-                          : "No current artifact"}
-                      </p>
-                      <p className="workbench-note">
-                        Origin:{" "}
-                        {comparisonJournal.forkedFrom
-                          ? `${comparisonJournal.forkedFrom.sessionId} / ${comparisonJournal.forkedFrom.eventId}`
-                          : "Root"}
-                      </p>
-                      <ul className="workbench-list">
-                        <li>
-                          Recipe:{" "}
-                          {comparisonProjected.activeRecipeId
-                            ? getLensRecipe(comparisonProjected.activeRecipeId)?.label ??
-                              comparisonProjected.activeRecipeId
-                            : "None"}{" "}
-                          / {comparisonProjected.completedRecipeSteps} steps
-                        </li>
-                        <li>Events: {comparisonJournal.events.length}</li>
-                        {comparisonProjected.currentArtifact
-                          ? summarizeArtifactPayload(comparisonProjected.currentArtifact).map((line) => (
-                              <li key={`compare-${line}`}>{line}</li>
-                            ))
-                          : null}
-                      </ul>
-                    </div>
-                  </div>
+                    {headComparison ? (
+                      <div className="comparison-card diff-summary-card">
+                        <p className={lensShellClasses.eyebrow}>Diff summary</p>
+                        <p className="workbench-note">
+                          Showing structured changes from the comparison head to the current head.
+                        </p>
+                        <div className="diff-summary-stack">
+                          {buildDiffSummarySections(headComparison).map((section) => (
+                            <section className="diff-summary-section" key={section.title}>
+                              <h3 className="workbench-section-title">{section.title}</h3>
+                              <ul className="workbench-list diff-summary-list">
+                                {section.lines.map((line) => (
+                                  <li key={`${section.title}-${line}`}>{line}</li>
+                                ))}
+                              </ul>
+                            </section>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+                  </>
                 ) : null}
               </>
             ) : (
