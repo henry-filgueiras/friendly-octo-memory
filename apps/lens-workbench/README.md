@@ -10,6 +10,26 @@ Artifact Lab now persists a full local workspace bundle. That bundle includes kn
 
 Artifact Lab is the suite's interop surface: load a typed artifact, inspect provenance, apply a narrow transform, record the manual session as a replayable journal, and keep the whole local workspace durable across reloads.
 
+## Workspace constellation
+
+![Workspace constellation storyboard](storyboard/workspace-constellation-storyboard.png)
+
+The `Workspace constellation` panel is a playful view over the real run-journal model. It does not create new state or invent a new branch system; it just gives you a faster way to read the current workspace.
+
+How to use it:
+
+1. Create or import at least a couple of runs.
+2. Fork once or twice if you want the map to show real ancestry arcs.
+3. Scroll to `Workspace constellation`.
+4. Read the markers:
+   - node color = head artifact kind
+   - warm halo = current session
+   - dashed ring = comparison session
+   - curved links = fork ancestry
+5. Click any node to switch the active session.
+
+It is most useful once the workspace stops being a single linear run and starts looking like a small local workflow universe.
+
 ## Manual artifact flow
 
 The current real cross-lens path is:
@@ -44,6 +64,7 @@ The first named recipe is:
 - Forks create a new run journal from an earlier replay point and preserve fork ancestry.
 - Head comparison lets you compare the current run head against another known local run.
 - Workspace persistence stores the whole local operator state in `localStorage`, not just one run.
+- Workspace constellation gives you a quick visual read on current vs comparison runs and fork lineage.
 
 Artifact Lab now distinguishes three different import/export surfaces:
 

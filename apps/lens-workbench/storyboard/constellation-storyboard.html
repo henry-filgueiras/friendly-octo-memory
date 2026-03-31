@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Workspace constellation storyboard</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: "IBM Plex Sans", "Avenir Next", sans-serif;
+        background:
+          radial-gradient(circle at top left, rgba(103, 184, 216, 0.12), transparent 24%),
+          radial-gradient(circle at top right, rgba(225, 132, 59, 0.16), transparent 28%),
+          linear-gradient(180deg, #10161b 0%, #0b0f13 100%);
+        color: #edf4f7;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: inherit;
+      }
+
+      main {
+        width: 1600px;
+        margin: 0 auto;
+        padding: 28px;
+        display: grid;
+        gap: 20px;
+      }
+
+      .hero,
+      .card {
+        border-radius: 28px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(15, 20, 24, 0.84);
+        box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
+      }
+
+      .hero {
+        display: grid;
+        grid-template-columns: 1.3fr 0.9fr;
+        gap: 22px;
+        padding: 26px 28px;
+      }
+
+      .eyebrow {
+        margin: 0 0 10px;
+        font-size: 11px;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: #d8ab57;
+      }
+
+      h1,
+      h2,
+      p {
+        margin-top: 0;
+      }
+
+      h1 {
+        margin-bottom: 12px;
+        font-size: 54px;
+        line-height: 0.98;
+      }
+
+      h2 {
+        margin-bottom: 10px;
+        font-size: 30px;
+        line-height: 1.06;
+      }
+
+      .lede {
+        color: rgba(237, 244, 247, 0.8);
+        font-size: 20px;
+        line-height: 1.56;
+      }
+
+      .pill-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .pill,
+      .callout {
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      .pill {
+        padding: 8px 12px;
+        color: rgba(237, 244, 247, 0.76);
+        font-size: 13px;
+      }
+
+      .how {
+        display: grid;
+        gap: 10px;
+      }
+
+      .how-step {
+        padding: 14px 16px;
+        border-radius: 18px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(255, 255, 255, 0.04);
+        color: rgba(237, 244, 247, 0.78);
+        line-height: 1.5;
+      }
+
+      .how-step strong {
+        display: block;
+        color: #edf4f7;
+        margin-bottom: 4px;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 20px;
+      }
+
+      .card {
+        padding: 16px;
+      }
+
+      .frame {
+        position: relative;
+        overflow: hidden;
+        border-radius: 22px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: #11181d;
+        margin-top: 12px;
+      }
+
+      .frame img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+
+      .frame--browser {
+        height: 330px;
+      }
+
+      .frame--constellation {
+        height: 430px;
+      }
+
+      .frame--constellation img {
+        object-fit: contain;
+        object-position: top center;
+        background: #11181d;
+      }
+
+      .callout {
+        position: absolute;
+        max-width: 260px;
+        padding: 10px 12px;
+        border-radius: 16px;
+        backdrop-filter: blur(10px);
+        font-size: 13px;
+        line-height: 1.45;
+      }
+
+      .callout strong {
+        display: block;
+        margin-bottom: 4px;
+        color: #ffffff;
+      }
+
+      .callout--teal {
+        border-color: rgba(103, 184, 216, 0.38);
+        background: rgba(103, 184, 216, 0.18);
+      }
+
+      .callout--amber {
+        border-color: rgba(225, 132, 59, 0.42);
+        background: rgba(225, 132, 59, 0.16);
+      }
+
+      .callout--browser-a {
+        left: 18px;
+        top: 18px;
+      }
+
+      .callout--browser-b {
+        right: 18px;
+        bottom: 18px;
+      }
+
+      .callout--constellation-a {
+        left: 18px;
+        top: 18px;
+      }
+
+      .callout--constellation-b {
+        right: 18px;
+        top: 18px;
+      }
+
+      .callout--constellation-c {
+        right: 18px;
+        bottom: 18px;
+      }
+
+      .footer {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        font-size: 12px;
+        color: rgba(237, 244, 247, 0.64);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="hero">
+        <div>
+          <p class="eyebrow">Annotated storyboard</p>
+          <h1>Workspace constellation turns run history into something you can read at a glance.</h1>
+          <p class="lede">
+            It is a playful view over the real `Artifact Lab` model: runs become stars, fork
+            ancestry becomes arcs, artifact kinds become colors, and the current plus comparison
+            sessions stay visibly marked.
+          </p>
+          <div class="pill-row">
+            <span class="pill">Deterministic layout</span>
+            <span class="pill">Fork ancestry</span>
+            <span class="pill">Artifact-kind colors</span>
+            <span class="pill">Current/comparison highlights</span>
+            <span class="pill">Click to switch runs</span>
+          </div>
+        </div>
+        <div class="how">
+          <div class="how-step">
+            <p class="eyebrow">How to use it</p>
+            <strong>1. Create or import a few runs</strong>
+            <span>The view becomes interesting once you have at least one fork or comparison target.</span>
+          </div>
+          <div class="how-step">
+            <strong>2. Read the map</strong>
+            <span>Color means artifact kind, the warm halo is the current run, and the dashed ring marks the comparison run.</span>
+          </div>
+          <div class="how-step">
+            <strong>3. Click a node to jump there</strong>
+            <span>The constellation is an alternate session browser, not a separate model.</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="grid">
+        <article class="card">
+          <p class="eyebrow">1. Build a little run universe</p>
+          <h2>The normal run browser still tells you what exists.</h2>
+          <p>
+            Keep using checkpoints, forks, and imports the same way you already do. The
+            constellation reads that durable workspace state; it does not invent a new branch model.
+          </p>
+          <div class="frame frame--browser">
+            <img src="./raw/05-run-browser.png" alt="Artifact Lab run browser" />
+            <div class="callout callout--teal callout--browser-a">
+              <strong>Same sessions, different lens</strong>
+              The constellation reads the exact same run journals shown in the browser.
+            </div>
+            <div class="callout callout--amber callout--browser-b">
+              <strong>Forks matter</strong>
+              Once you branch a run, the map has real ancestry to show instead of a flat list.
+            </div>
+          </div>
+        </article>
+
+        <article class="card">
+          <p class="eyebrow">2. Read the constellation</p>
+          <h2>The star map gives you a fast orientation layer.</h2>
+          <p>
+            Use it when you want the shape of the workspace more than the prose of the transcript:
+            which run is current, which one you are comparing against, and how artifact heads differ
+            by branch depth and kind.
+          </p>
+          <div class="frame frame--constellation">
+            <img src="./raw/06-constellation.png" alt="Artifact Lab workspace constellation" />
+            <div class="callout callout--amber callout--constellation-a">
+              <strong>Warm halo</strong>
+              The current session stands out immediately so you always know which head you are driving.
+            </div>
+            <div class="callout callout--teal callout--constellation-b">
+              <strong>Dashed ring</strong>
+              The comparison session stays visible too, so the map reflects the same context as head comparison.
+            </div>
+            <div class="callout callout--amber callout--constellation-c">
+              <strong>Curved ancestry</strong>
+              The arcs are fork lineage, and the node color comes from the head artifact kind.
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <footer class="footer">
+        <span>Workspace constellation is playful, but it stays grounded in the real append-only run model.</span>
+        <span>It is a new way to read the workspace, not a second workflow engine.</span>
+      </footer>
+    </main>
+  </body>
+</html>

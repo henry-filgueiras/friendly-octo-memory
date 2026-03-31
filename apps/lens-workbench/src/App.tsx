@@ -48,6 +48,7 @@ import {
   syncArtifactLabWorkspace,
   type ArtifactLabWorkspace,
 } from "./workspace";
+import { buildWorkspaceConstellation, getConstellationArtifactColor } from "./constellation";
 
 function summarizeArtifactPayload(artifact: WorkbenchArtifact): string[] {
   switch (artifact.kind) {
@@ -535,6 +536,25 @@ export default function App() {
   const comparisonProjected = comparisonJournal
     ? replayArtifactLabRunJournal(comparisonJournal)
     : null;
+  const constellation = useMemo(
+    () =>
+      buildWorkspaceConstellation(
+        knownSessions.map(({ journal, replayed }) => ({
+          sessionId: journal.sessionId,
+          createdAt: journal.createdAt,
+          eventCount: journal.events.length,
+          forkedFromSessionId: journal.forkedFrom?.sessionId,
+          currentArtifactKind: replayed.currentArtifact?.kind,
+          currentArtifactTitle: replayed.currentArtifact?.title,
+          activeRecipeId: replayed.activeRecipeId,
+          completedRecipeSteps: replayed.completedRecipeSteps,
+        })),
+        currentSessionId,
+        effectiveComparisonSessionId,
+        workspace.workspaceId
+      ),
+    [currentSessionId, effectiveComparisonSessionId, knownSessions, workspace.workspaceId]
+  );
 
   function updateWorkspace(transform: (current: ArtifactLabWorkspace) => ArtifactLabWorkspace) {
     setWorkspace((current) => syncArtifactLabWorkspace(transform(current), new Date().toISOString()));
@@ -1036,6 +1056,107 @@ export default function App() {
                       : "Root"}
                   </span>
                 </button>
+              ))}
+            </div>
+          </div>
+        </LensPanel>
+
+        <LensPanel>
+          <div className={lensShellClasses.panelHeader}>
+            <div>
+              <p className={lensShellClasses.eyebrow}>Play Mode</p>
+              <h2>Workspace constellation</h2>
+            </div>
+            <p className="workbench-note">
+              A deterministic star map of run heads, fork ancestry, and artifact kinds. Click a
+              node to switch the active session.
+            </p>
+          </div>
+
+          <div className="workbench-stack">
+            <div className="constellation-shell">
+              <svg
+                viewBox={`0 0 ${constellation.width} ${constellation.height}`}
+                className="constellation-svg"
+                role="img"
+                aria-label="Workspace constellation"
+              >
+                {constellation.stars.map((star) => (
+                  <circle
+                    key={star.id}
+                    cx={star.x}
+                    cy={star.y}
+                    r={star.radius}
+                    fill="rgba(255, 255, 255, 0.8)"
+                    opacity={star.opacity}
+                  />
+                ))}
+
+                {constellation.links.map((link) => (
+                  <path key={`${link.fromSessionId}-${link.toSessionId}`} d={link.path} className="constellation-link" />
+                ))}
+
+                {constellation.nodes.map((node) => (
+                  <g
+                    key={node.sessionId}
+                    className="constellation-node"
+                    transform={`translate(${node.x} ${node.y})`}
+                    onClick={() => handleSwitchSession(node.sessionId)}
+                  >
+                    <title>
+                      {node.label}: {node.artifactKind ?? "No head"} / {node.eventCount} events
+                    </title>
+                    {node.isComparison ? (
+                      <circle
+                        r={node.radius + 10}
+                        fill="none"
+                        stroke="rgba(103, 184, 216, 0.72)"
+                        strokeWidth="2"
+                        strokeDasharray="5 5"
+                      />
+                    ) : null}
+                    {node.isCurrent ? (
+                      <circle
+                        r={node.radius + 16}
+                        fill="none"
+                        stroke="rgba(225, 132, 59, 0.72)"
+                        strokeWidth="3"
+                      />
+                    ) : null}
+                    <circle r={node.radius + 7} fill={node.color} opacity="0.18" />
+                    <circle r={node.radius} fill={node.color} />
+                    <circle r={Math.max(2.5, node.radius * 0.28)} fill="rgba(255, 255, 255, 0.92)" />
+                    <text y={node.radius + 20} textAnchor="middle" className="constellation-node__label">
+                      {node.label}
+                    </text>
+                    <text y={node.radius + 35} textAnchor="middle" className="constellation-node__meta">
+                      {node.artifactKind ?? "No head"}
+                    </text>
+                    <text y={node.radius + 49} textAnchor="middle" className="constellation-node__meta">
+                      {node.eventCount} events
+                    </text>
+                  </g>
+                ))}
+              </svg>
+            </div>
+
+            <div className="constellation-legend">
+              <span className="constellation-chip constellation-chip--current">Current run</span>
+              {effectiveComparisonSessionId ? (
+                <span className="constellation-chip constellation-chip--comparison">
+                  Comparison run
+                </span>
+              ) : null}
+              {constellation.kindsPresent.map((kind) => (
+                <span className="constellation-chip" key={kind}>
+                  <span
+                    className="constellation-dot"
+                    style={{
+                      backgroundColor: getConstellationArtifactColor(kind),
+                    }}
+                  />
+                  {getLensArtifactDefinition(kind)?.label ?? kind}
+                </span>
               ))}
             </div>
           </div>
