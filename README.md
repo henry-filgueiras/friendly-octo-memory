@@ -110,6 +110,11 @@ Artifact Lab is the interop/operator bench: a local-only workspace for loading t
 
 ![Artifact Lab storyboard](apps/lens-workbench/storyboard/artifact-lab-storyboard.png)
 
+Focused storyboard views:
+
+- `apps/lens-workbench/storyboard/workspace-constellation-storyboard.png`
+- `apps/lens-workbench/storyboard/workflow-atlas-storyboard.png`
+
 Quick start:
 
 ```bash
@@ -161,5 +166,7 @@ make threadline-preview
 - `Threadline/storyboard/threadline-storyboard.png`: Threadline walkthrough
 - `apps/lens-workbench`: artifact interop and workflow operator bench
 - `apps/lens-workbench/storyboard/artifact-lab-storyboard.png`: Artifact Lab walkthrough
+- `apps/lens-workbench/storyboard/workspace-constellation-storyboard.png`: Workspace constellation walkthrough
+- `apps/lens-workbench/storyboard/workflow-atlas-storyboard.png`: Workflow Atlas walkthrough
 - `Makefile`: repo-root shortcuts for the suite
 - `index.html`: static browser launcher/gallery for the suite

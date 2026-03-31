@@ -13,7 +13,8 @@ function delay(ms) {
 async function clickButtonByText(page, label, occurrence = 0) {
   const clicked = await page.evaluate(
     (targetLabel, targetOccurrence) => {
-      const matches = Array.from(document.querySelectorAll("button")).filter((element) =>
+      const elements = Array.from(document.querySelectorAll("button"));
+      const matches = elements.filter((element) =>
         element.textContent?.trim().includes(targetLabel)
       );
       const match = matches[targetOccurrence];
@@ -56,19 +57,6 @@ async function clickLastButtonByText(page, label) {
   }
 }
 
-async function screenshotPanel(page, panelIndex, filename) {
-  const panels = await page.$$(".lens-panel");
-  const panel = panels[panelIndex];
-
-  if (!panel) {
-    throw new Error(`Panel ${panelIndex} not found`);
-  }
-
-  await panel.screenshot({
-    path: path.join(outputDir, filename),
-  });
-}
-
 async function screenshotSelector(page, selector, filename) {
   const element = await page.$(selector);
 
@@ -92,6 +80,10 @@ const browser = await puppeteer.launch({
 
 try {
   const page = await browser.newPage();
+  page.on("dialog", async (dialog) => {
+    await dialog.accept("Pressure checkpoint");
+  });
+
   await page.goto(appUrl, { waitUntil: "networkidle0" });
   await page.evaluate(() => window.localStorage.clear());
   await page.reload({ waitUntil: "networkidle0" });
@@ -103,18 +95,22 @@ try {
   await delay(200);
   await clickButtonByText(page, "Promote derived artifact to continue recipe");
   await delay(250);
-
   await clickLastButtonByText(page, "Fork from here");
   await delay(250);
-  await clickButtonByText(page, "Apply selected transform");
+  await clickButtonByText(page, "Transform applied");
   await delay(200);
-  await clickButtonByText(page, "Use derived artifact as current");
+  await clickButtonByText(page, "Mark checkpoint");
+  await delay(200);
+  await clickButtonByText(page, "Add to observed path");
   await delay(250);
-  await clickLastButtonByText(page, "Fork from here");
-  await delay(300);
 
-  await screenshotPanel(page, 0, "05-run-browser.png");
-  await screenshotSelector(page, ".constellation-shell", "06-constellation.png");
+  await screenshotSelector(
+    page,
+    ".workbench-dashboard__column--projection .lens-panel",
+    "07-atlas-panel.png"
+  );
+  await screenshotSelector(page, ".atlas-detail-card", "08-atlas-detail.png");
+  await screenshotSelector(page, ".projection-section", "09-atlas-transcript.png");
 } finally {
   await browser.close();
 }
