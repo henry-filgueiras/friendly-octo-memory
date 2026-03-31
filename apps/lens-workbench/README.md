@@ -6,6 +6,10 @@ It intentionally does **not** contain a generic engine or workflow runner. It is
 
 Artifact Lab now persists a full local workspace bundle. That bundle includes known run journals, forks, the active session, head-comparison state, and the current target artifact kind.
 
+![Artifact Lab storyboard](storyboard/artifact-lab-storyboard.png)
+
+Artifact Lab is the suite's interop surface: load a typed artifact, inspect provenance, apply a narrow transform, record the manual session as a replayable journal, and keep the whole local workspace durable across reloads.
+
 ## Manual artifact flow
 
 The current real cross-lens path is:
@@ -64,6 +68,12 @@ Workspace import replaces the current local Artifact Lab workspace after shape v
 cd apps/lens-workbench
 npm install
 npm run dev
+```
+
+Or from the repo root:
+
+```bash
+make lens-workbench-dev
 ```
 
 ## Test

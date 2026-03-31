@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Artifact Lab storyboard</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: "IBM Plex Sans", "Avenir Next", sans-serif;
+        background:
+          radial-gradient(circle at top left, rgba(103, 184, 216, 0.12), transparent 24%),
+          radial-gradient(circle at top right, rgba(225, 132, 59, 0.16), transparent 28%),
+          linear-gradient(180deg, #10161b 0%, #0b0f13 100%);
+        color: #edf4f7;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: inherit;
+      }
+
+      main {
+        width: 1680px;
+        margin: 0 auto;
+        padding: 30px;
+        display: grid;
+        gap: 20px;
+      }
+
+      .hero,
+      .card {
+        border-radius: 28px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(15, 20, 24, 0.84);
+        box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
+      }
+
+      .hero {
+        display: grid;
+        grid-template-columns: 1.35fr 0.85fr;
+        gap: 22px;
+        padding: 26px 28px;
+      }
+
+      .eyebrow {
+        margin: 0 0 10px;
+        font-size: 11px;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: #d8ab57;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin-top: 0;
+      }
+
+      h1 {
+        margin-bottom: 12px;
+        font-size: 56px;
+        line-height: 0.98;
+      }
+
+      h2 {
+        margin-bottom: 10px;
+        font-size: 30px;
+        line-height: 1.06;
+      }
+
+      .lede {
+        color: rgba(237, 244, 247, 0.8);
+        font-size: 20px;
+        line-height: 1.56;
+        max-width: 900px;
+      }
+
+      .pill-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .pill,
+      .callout {
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      .pill {
+        padding: 8px 12px;
+        color: rgba(237, 244, 247, 0.76);
+        font-size: 13px;
+      }
+
+      .how {
+        display: grid;
+        gap: 10px;
+      }
+
+      .how-step {
+        padding: 14px 16px;
+        border-radius: 18px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(255, 255, 255, 0.04);
+        color: rgba(237, 244, 247, 0.78);
+        line-height: 1.5;
+      }
+
+      .how-step strong {
+        display: block;
+        color: #edf4f7;
+        margin-bottom: 4px;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 20px;
+      }
+
+      .card {
+        padding: 16px;
+      }
+
+      .frame {
+        position: relative;
+        overflow: hidden;
+        border-radius: 22px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: #11181d;
+        margin-top: 12px;
+      }
+
+      .frame img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+
+      .frame--home {
+        height: 330px;
+      }
+
+      .frame--recipe {
+        height: 350px;
+      }
+
+      .frame--handoff {
+        height: 350px;
+      }
+
+      .frame--forks {
+        height: 350px;
+      }
+
+      .frame--home img {
+        object-position: center 10%;
+      }
+
+      .frame--recipe img {
+        object-position: center 51%;
+      }
+
+      .frame--handoff img {
+        object-position: center 64%;
+      }
+
+      .frame--forks img {
+        object-position: center 80%;
+      }
+
+      .callout {
+        position: absolute;
+        max-width: 280px;
+        padding: 10px 12px;
+        border-radius: 16px;
+        backdrop-filter: blur(10px);
+        font-size: 13px;
+        line-height: 1.45;
+      }
+
+      .callout strong {
+        display: block;
+        margin-bottom: 4px;
+        color: #ffffff;
+      }
+
+      .callout--teal {
+        border-color: rgba(103, 184, 216, 0.38);
+        background: rgba(103, 184, 216, 0.18);
+      }
+
+      .callout--amber {
+        border-color: rgba(225, 132, 59, 0.42);
+        background: rgba(225, 132, 59, 0.16);
+      }
+
+      .callout--home-a {
+        left: 18px;
+        top: 18px;
+      }
+
+      .callout--home-b {
+        right: 18px;
+        bottom: 18px;
+      }
+
+      .callout--recipe-a {
+        left: 18px;
+        top: 18px;
+      }
+
+      .callout--recipe-b {
+        right: 18px;
+        bottom: 18px;
+      }
+
+      .callout--handoff-a {
+        left: 18px;
+        top: 18px;
+      }
+
+      .callout--handoff-b {
+        right: 18px;
+        bottom: 18px;
+      }
+
+      .callout--forks-a {
+        left: 18px;
+        top: 18px;
+      }
+
+      .callout--forks-b {
+        right: 18px;
+        bottom: 18px;
+      }
+
+      .footer {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        font-size: 12px;
+        color: rgba(237, 244, 247, 0.64);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="hero">
+        <div>
+          <p class="eyebrow">Annotated storyboard</p>
+          <h1>Artifact Lab makes cross-lens workflows explicit, replayable, and local.</h1>
+          <p class="lede">
+            It is the operator bench for the suite: load artifact envelopes, inspect provenance,
+            apply explicit transforms, record what a human actually did, and keep the whole local
+            workspace durable across reloads.
+          </p>
+          <div class="pill-row">
+            <span class="pill">Artifact envelopes</span>
+            <span class="pill">Manual transforms</span>
+            <span class="pill">Run journals</span>
+            <span class="pill">Forked sessions</span>
+            <span class="pill">Workspace persistence</span>
+          </div>
+        </div>
+        <div class="how">
+          <div class="how-step">
+            <p class="eyebrow">How to read it</p>
+            <strong>1. Load a real artifact</strong>
+            <span>Start from a lens output such as `ExecutionPlan`, not a giant mutable blob.</span>
+          </div>
+          <div class="how-step">
+            <strong>2. Apply a named path manually</strong>
+            <span>The bench can reveal the next compatible step without hiding the transition.</span>
+          </div>
+          <div class="how-step">
+            <strong>3. Keep a transcript and branch it</strong>
+            <span>Runs are replayable, forkable, and exportable as durable local workspace state.</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="grid">
+        <article class="card">
+          <p class="eyebrow">1. Durable workspace</p>
+          <h2>The whole local workflow universe persists together.</h2>
+          <p>
+            `Artifact Lab` restores the active session, known runs, comparison target, and current
+            artifact goal on reload instead of forcing you to rebuild state from scattered files.
+          </p>
+          <div class="frame frame--home">
+            <img src="./raw/01-home.png" alt="Artifact Lab workspace overview" />
+            <div class="callout callout--teal callout--home-a">
+              <strong>Workspace bundle</strong>
+              Sessions, forks, comparison state, and target selection live in one durable local
+              bundle.
+            </div>
+            <div class="callout callout--amber callout--home-b">
+              <strong>Artifact first</strong>
+              The current source artifact is inspectable before any transform runs.
+            </div>
+          </div>
+        </article>
+
+        <article class="card">
+          <p class="eyebrow">2. Recipe guidance</p>
+          <h2>Named workflows are visible, but still manual.</h2>
+          <p>
+            Recipe mode turns one real path into a readable chain, preselects the expected next
+            transform, and keeps the remaining steps visible without becoming a workflow runner.
+          </p>
+          <div class="frame frame--recipe">
+            <img src="./raw/02-recipe.png" alt="Artifact Lab recipe mode" />
+            <div class="callout callout--amber callout--recipe-a">
+              <strong>Real chain</strong>
+              `ExecutionPlan -> ClaimSet -> EvidenceMap` is encoded as an explicit, inspectable
+              path.
+            </div>
+            <div class="callout callout--teal callout--recipe-b">
+              <strong>No hidden execution</strong>
+              The recipe only guides the next step. The operator still applies every transform by
+              hand.
+            </div>
+          </div>
+        </article>
+
+        <article class="card">
+          <p class="eyebrow">3. Manual handoff</p>
+          <h2>Derived artifacts stay visible until a human promotes them.</h2>
+          <p>
+            After a transform runs, the result becomes a pending derived artifact. The app makes
+            the seam obvious: export it, inspect it, or promote it to continue the recipe.
+          </p>
+          <div class="frame frame--handoff">
+            <img src="./raw/03-derived.png" alt="Artifact Lab derived artifact handoff" />
+            <div class="callout callout--teal callout--handoff-a">
+              <strong>Fresh provenance</strong>
+              The transformed artifact gets a new id, timestamp, and explicit transform provenance.
+            </div>
+            <div class="callout callout--amber callout--handoff-b">
+              <strong>Manual seam</strong>
+              Promotion is a deliberate operator action, not a hidden state transition.
+            </div>
+          </div>
+        </article>
+
+        <article class="card">
+          <p class="eyebrow">4. Replay and forks</p>
+          <h2>Runs are replayable transcripts, and forks stay legible.</h2>
+          <p>
+            The session transcript records what actually happened. Any event can become a new run
+            origin, which makes branching explicit before there is any merge or orchestration layer.
+          </p>
+          <div class="frame frame--forks">
+            <img src="./raw/04-fork.png" alt="Artifact Lab forked run browser" />
+            <div class="callout callout--amber callout--forks-a">
+              <strong>Fork browser</strong>
+              Known runs and their ancestry stay in one workspace, so branching is easy to inspect.
+            </div>
+            <div class="callout callout--teal callout--forks-b">
+              <strong>Transcript over magic</strong>
+              The journal records what the human did, and replay reconstructs state deterministically.
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <footer class="footer">
+        <span>Artifact Lab is a secondary operator tool in the suite, not a hidden workflow engine.</span>
+        <span>Local-only, append-only, and inspectable by design.</span>
+      </footer>
+    </main>
+  </body>
+</html>

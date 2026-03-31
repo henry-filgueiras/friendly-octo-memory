@@ -1,5 +1,6 @@
 export * from "./demos";
 export * from "./artifacts";
+export * from "./compare";
 export * from "./io";
 export * from "./recipes";
 export * from "./react";
