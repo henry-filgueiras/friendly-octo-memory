@@ -715,6 +715,10 @@ textarea {
     grid-template-columns: minmax(280px, 0.92fr) minmax(0, 1.08fr);
   }
 
+  .workbench-dashboard__column--nav .lens-panel:first-child {
+    position: static;
+  }
+
   .workbench-dashboard__column--bench {
     grid-column: 1 / -1;
   }
